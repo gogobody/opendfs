@@ -1,2 +1,3 @@
 # opendfs
-read source opendfs
+单独的数据节点
+
