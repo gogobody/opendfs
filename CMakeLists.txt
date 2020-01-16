@@ -1,0 +1,32 @@
+cmake_minimum_required(VERSION 3.10)
+project(opendfs)
+
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_FLAGS "${CAMKE_CXX_FLAGS} -std=c++11 -pthread")
+FIND_PACKAGE(Threads)
+SET(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
+AUX_SOURCE_DIRECTORY(src/datanode DIR_SRCS)
+AUX_SOURCE_DIRECTORY(src/cfs DIR_SRCS)
+AUX_SOURCE_DIRECTORY(src/common DIR_SRCS)
+AUX_SOURCE_DIRECTORY(src/core DIR_SRCS)
+AUX_SOURCE_DIRECTORY(src/faio DIR_SRCS)
+#AUX_SOURCE_DIRECTORY(src/namenode DIR_SRCS)
+#AUX_SOURCE_DIRECTORY(src/paxos DIR_SRCS)
+#AUX_SOURCE_DIRECTORY(src/* src/datanode src/core src/common src/cfs src/faio DIR_SRCS)
+
+include_directories(src/core)
+include_directories(src/datanode)
+include_directories(src/cfs)
+include_directories(src/common)
+include_directories(src/faio)
+include_directories(objs)
+#include_directories(src/namenode)
+#include_directories(src/paxos)
+add_executable(opendfs ${DIR_SRCS})
+
+# debug here
+SET(CMAKE_BUILD_TYPE "Debug")
+SET(CMAKE_CXX_FLAGS_DEBUG "$ENV{CXXFLAGS} -O0 -Wall -g -ggdb")
+SET(CMAKE_CXX_FLAGS_RELEASE "$ENV{CXXFLAGS} -O3 -Wall")
+
+TARGET_LINK_LIBRARIES(opendfs    ${CMAKE_THREAD_LIBS_INIT})
