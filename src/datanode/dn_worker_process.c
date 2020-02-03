@@ -193,6 +193,7 @@ void worker_processer(cycle_t *cycle, void *data)
     
     thread_registration_init();
 
+    // name node server ?
 	if (create_ns_service_thread(cycle) != DFS_OK) 
 	{
         dfs_log_error(cycle->error_log, DFS_LOG_ALERT, errno, 

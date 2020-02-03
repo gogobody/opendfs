@@ -87,7 +87,7 @@ int dn_data_storage_worker_init(cycle_t *cycle)
 	{
         return DFS_ERROR;
     }
-
+    // blk cache management
 	g_dn_bcm = blk_cache_mgmt_new_init();
     if (!g_dn_bcm) 
 	{
@@ -505,7 +505,7 @@ static int blk_mem_mgmt_create(blk_cache_mem_t *mem_mgmt,
 	mpool_mgmt_param_t param;
     param.mem_addr = mem_mgmt->mem;
     param.mem_size = mem_size;
-
+    // allocator
     mem_mgmt->allocator = dfs_mem_allocator_new_init(
 		DFS_MEM_ALLOCATOR_TYPE_COMMPOOL, &param);
     if (!mem_mgmt->allocator) 

@@ -164,7 +164,7 @@ int cfs_size_sub(volatile uint64_t *old_size, uint64_t size, log_t *log)
 int cfs_prepare_work(cycle_t *cycle)
 {
 	cfs_t *cfs = (cfs_t *)cycle->cfs;
-	
+	//  cfs_faio_ioinit
 	return cfs->sp->io_opt.ioinit(/*sconf->dio_thread_num*/20);
 }
 

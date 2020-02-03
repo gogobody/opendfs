@@ -217,7 +217,7 @@ int faio_worker_manager_init(faio_manager_t *faio_mgr,
     manager->idle = 0;
     manager->want_quit = FAIO_WORKER_NO_QUIT;
     manager->init_flag = FAIO_TRUE;
-    
+    // 开启了两个 faio 线程
     for (i = 0; i < manager->worker_properties.pre_start; i++) 
 	{
         retval = faio_worker_start_thread(manager, err);

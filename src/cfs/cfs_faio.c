@@ -58,7 +58,7 @@ static int cfs_faio_ioinit(int thread_num)
     property.pre_start = 2;
 
     faio_mgr = (faio_manager_t *)malloc(sizeof(faio_manager_t));
-
+    // fast io manager init
     if (faio_manager_init(faio_mgr, &property, 0, &error) != FAIO_OK) 
 	{
         return DFS_ERROR;

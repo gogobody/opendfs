@@ -176,6 +176,7 @@ static pid_t process_spawn(cycle_t *cycle, spawn_proc_pt proc,
     process_slot = slot; // 这一步将在ngx_pass_open_channel()中用到，就是设置下标，用于寻找本次创建的子进程  
 
     pid = fork();
+    // 这里是第三个进程了
     printf("pid:%d\n",pid);
     switch (pid) 
 	{
