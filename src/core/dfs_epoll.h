@@ -8,16 +8,21 @@
 typedef struct epoll_event epoll_event_t;
 
 typedef void (*time_update_ptr)();
-
+//niginx是通过将获取的事件先不调用其回调，而是把他们先放入俩个post队列，这俩个队列分别为
+//
+//.ngx_posted_accept_events
+//.ngx_posted_events
+//        第一个队列用来保存连接事件，而第二个队列用来保存普通读写事件，
+//        之后在执行时我们可以先保证ngx_posted_accept_events中的事件先处理，就可以保证连接对响应速度的敏感性
 struct event_base_s 
 {
-    int             ep;
+    int             ep;// epoll的句柄
     uint32_t        event_flags;
     epoll_event_t  *event_list;
-    uint32_t        nevents;
+    uint32_t        nevents; // max epoll event
     time_update_ptr time_update;
-    queue_t         posted_accept_events;
-    queue_t         posted_events;
+    queue_t         posted_accept_events; //连接事件
+    queue_t         posted_events; //普通读写事件
     log_t           *log;
 };
 

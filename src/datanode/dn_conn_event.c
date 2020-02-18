@@ -98,7 +98,7 @@ static void listen_rev_handler(event_t *ev)
     socklen = DFS_SOCKLEN;
     conn_pool = thread_get_conn_pool();
     
-    for (i = 0;
+    for (i = 0; // 无限制的 accept
         ev->available == CONF_SERVER_UNLIMITED_ACCEPT_N || i < ev->available;
         i++) 
     {

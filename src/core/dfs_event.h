@@ -15,13 +15,14 @@ typedef void (*event_handler_pt)(event_t *ev);
 
 struct event_s 
 {
-    void            *data;
-    uint32_t         write:1;
-    uint32_t         accepted:1; 
-    uint32_t         instance:1;
+    void            *data;    /*事件相关的对象，通常data指向ngx_connection_t连接对象。开启文件异步I/O 时，它可能会指向*/
+    uint32_t         write:1;   /* 标志位，标识事件可写，意味着对应的TCP连接可写，也即连接处于发送网络包状态 */
+    uint32_t         accepted:1;   /* 标志位，标识可建立新的连接，一般是在ngx_listening_t对应的读事件中标记 */
+    uint32_t         instance:1;  /*检测当前事件是否是过期的，它仅仅是给驱动模块使用的，而事件消费模块可以不用关心 */
+    /* used to detect the stale events in kqueue and epoll */
     uint32_t         last_instance:1;
     uint32_t         active:1;
-    uint32_t         ready:1;
+    uint32_t         ready:1;   //在AIO模式下标示是否有请求事件处理
     uint32_t         timedout:1;
     uint32_t         timer_set:1;
     uint32_t         timer_event:1;
@@ -169,7 +170,7 @@ struct event_s
 
 #define event_init            epoll_init
 #define event_process_events  epoll_process_events
-#define event_add             epoll_add_event
+#define event_add             epoll_add_event  // dfs_epoll.c
 #define event_delete          epoll_del_event
 #define event_add_conn        epoll_add_connection
 #define event_del_conn        epoll_del_connection

@@ -107,7 +107,8 @@ int dfs_module_master_release(cycle_t *cycle)
     return DFS_OK;
 }
 
-//set flag
+// set flag
+// dn_data_storage_worker_init
 int dfs_module_woker_init(cycle_t *cycle)
 {
     int i = 0;
@@ -150,7 +151,7 @@ int dfs_module_woker_release(cycle_t *cycle)
 }
 
 
-//do nothing
+// dn_data_storage_thread_init
 int dfs_module_workethread_init(dfs_thread_t *thread)
 {
     int i = 0;

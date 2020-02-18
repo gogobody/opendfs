@@ -31,8 +31,8 @@ struct dfs_thread_s
     conn_pool_t             conn_pool;
     queue_t                 posted_accept_events;
     queue_t                 posted_events;
-    TREAD_FUNC              run_func;
-    uint32_t                state;
+    TREAD_FUNC              run_func;  // handler
+    uint32_t                state;  // THREAD_ST_UNSTART
     int                     running;
 	ns_srv_info_t           ns_info;
 	faio_notifier_manager_t faio_notify;

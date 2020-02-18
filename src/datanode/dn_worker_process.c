@@ -160,7 +160,7 @@ void worker_processer(cycle_t *cycle, void *data)
 
     process_type = PROCESS_WORKER;
     main_thread->event_base.nevents = 512;
-    
+    // 初始化 epoll 和 timer
     if (thread_event_init(main_thread) != DFS_OK) 
 	{
 		dfs_log_error(cycle->error_log, DFS_LOG_ALERT, errno, 
@@ -178,30 +178,34 @@ void worker_processer(cycle_t *cycle, void *data)
         exit(PROCESS_FATAL_EXIT);
     }
 
-    sigemptyset(&set);
-    if (sigprocmask(SIG_SETMASK, &set, NULL) == -1) 
+    sigemptyset(&set);//信号集置空
+    if (sigprocmask(SIG_SETMASK, &set, NULL) == -1)
 	{
         dfs_log_error(cycle->error_log, DFS_LOG_ALERT, errno, 
 			"sigprocmask() failed");
     }
 
+    // close this process's write fd
     process_close_other_channel();
 
     title.data = (uchar_t *)WORKER_TITLE;
     title.len = sizeof(WORKER_TITLE) - 1;
     process_set_title(&title);
-    
+
+    // 初始化线程锁
     thread_registration_init();
 
     // name node server ?
-	if (create_ns_service_thread(cycle) != DFS_OK) 
+    // 获取 namespaceid 和 监控 report 上报
+    // 发送心跳
+	if (create_ns_service_thread(cycle) != DFS_OK)
 	{
-        dfs_log_error(cycle->error_log, DFS_LOG_ALERT, errno, 
+        dfs_log_error(cycle->error_log, DFS_LOG_ALERT, errno,
             "create ns service thread failed");
-		
+
         exit(PROCESS_FATAL_EXIT);
     }
-
+    // 扫描 blk ，更新 hashtable 和 全局 reporter
 	if (create_data_blk_scanner(cycle) != DFS_OK) 
 	{
         dfs_log_error(cycle->error_log, DFS_LOG_ALERT, errno, 
@@ -209,17 +213,18 @@ void worker_processer(cycle_t *cycle, void *data)
 		
         exit(PROCESS_FATAL_EXIT);
 	}
-    
-    if (create_worker_thread(cycle) != DFS_OK) 
+    //创建worker线程
+    if (create_worker_thread(cycle) != DFS_OK)
 	{
-        dfs_log_error(cycle->error_log, DFS_LOG_ALERT, errno, 
+        dfs_log_error(cycle->error_log, DFS_LOG_ALERT, errno,
             "create worker thread failed");
-		
+
         exit(PROCESS_FATAL_EXIT);
     }
-    
+
     process = get_process(process_get_curslot());
-    
+
+    /* 根据全局变量ngx_channel开启一个通道,只用于处理读事件(ngx_channel_handler) */
     if (channel_add_event(process->channel[1],
         EVENT_READ_EVENT, channel_handler, NULL) != DFS_OK) 
     {
@@ -236,7 +241,7 @@ void worker_processer(cycle_t *cycle, void *data)
 			
             break;
         }
-		
+        // 先注释掉主线程的 thread 事件
         thread_event_process(main_thread);
     }
 	
@@ -244,6 +249,7 @@ void worker_processer(cycle_t *cycle, void *data)
     process_worker_exit(cycle);
 }
 
+// 开启worker 线程
 int create_worker_thread(cycle_t *cycle)
 {
     conf_server_t *sconf = NULL;
@@ -274,7 +280,7 @@ int create_worker_thread(cycle_t *cycle)
         
     for (i = 0; i < woker_num; i++) 
 	{
-        woker_threads[i].run_func = thread_worker_cycle;
+        woker_threads[i].run_func = thread_worker_cycle; //
         woker_threads[i].running = DFS_TRUE;
         woker_threads[i].state = THREAD_ST_UNSTART;
 		
@@ -305,6 +311,8 @@ int create_worker_thread(cycle_t *cycle)
     return DFS_OK;
 }
 
+// worker 线程的 处理函数
+// dn_data_storage_thread_init
 static void * thread_worker_cycle(void *arg)
 {
     dfs_thread_t *me = (dfs_thread_t *)arg;
@@ -313,6 +321,7 @@ static void * thread_worker_cycle(void *arg)
 
 	time_init();
 
+	// dn_data_storage_thread_init
     if (dfs_module_workethread_init(me) != DFS_OK) 
 	{
         goto exit;
@@ -324,6 +333,7 @@ static void * thread_worker_cycle(void *arg)
    
     if (faio_mgr) 
 	{
+        // 添加 读事件
         if (channel_add_event(me->faio_notify.nfd, EVENT_READ_EVENT, 
             dio_event_handler, (void *)me) == DFS_ERROR)
         {
@@ -359,10 +369,13 @@ static void dio_event_handler(event_t * ev)
 {
     dfs_thread_t *thread = (dfs_thread_t *)((conn_t *)(ev->data))->conn_data;
 
+    // read eventfd
     cfs_recv_event(&thread->faio_notify);
 	cfs_ioevents_process_posted(&thread->io_events, &thread->fio_mgr);
 }
 
+// 根据 eventfd 初始化 connection
+// epoll event 添加 读写事件
 static int channel_add_event(int fd, int event, 
 	event_handler_pt handler, void *data)
 {
@@ -372,17 +385,18 @@ static int channel_add_event(int fd, int event,
     conn_t       *c = NULL;
     event_base_t *base = NULL;
 
+    // 根据 eventfd 初始化 connection
     c = conn_get_from_mem(fd);
 
     if (!c) 
 	{
         return DFS_ERROR;
     }
-    
+    // 获取的是主线程的？
     base = thread_get_event_base();
 
     c->pool = NULL;
-    c->conn_data = data;
+    c->conn_data = data; // data 是 thread 本身
 
     rev = c->read;
     wev = c->write;
@@ -390,6 +404,7 @@ static int channel_add_event(int fd, int event,
     ev = (event == EVENT_READ_EVENT) ? rev : wev;
     ev->handler = handler;
 
+    // epoll add event
     if (event_add(base, ev, event, 0) == DFS_ERROR) 
 	{
         return DFS_ERROR;
@@ -519,12 +534,13 @@ static inline int hash_task_key(char* str, int len)
     return str[0];
 }
 
+// namenode 线程
 static int create_ns_service_thread(cycle_t *cycle)
 {
     conf_server_t *sconf = (conf_server_t *)cycle->sconf;
 
 	int i = 0;
-	uchar_t names[16][64];
+	uchar_t names[16][64]; // 127.0.0.1:8001
 	
 	ns_service_num = get_ns_srv_names(sconf->ns_srv.data, names);
 
@@ -546,11 +562,12 @@ static int create_ns_service_thread(cycle_t *cycle)
         {
             return DFS_ERROR;
         }
-
+        // namenode 的run func
 		ns_service_threads[i].run_func = thread_ns_service_cycle;
+
         ns_service_threads[i].running = DFS_TRUE;
         ns_service_threads[i].state = THREAD_ST_UNSTART;
-		
+		// 线程创建之后运行 thread_ns_service_cycle，参数是thread 本身
         if (thread_create(&ns_service_threads[i]) != DFS_OK) 
 		{
             dfs_log_error(cycle->error_log, DFS_LOG_FATAL, 0, 
@@ -600,6 +617,8 @@ static int get_ns_srv_names(uchar_t *path, uchar_t names[][64])
     return i;
 }
 
+// name node server
+// args is thread self
 static void *thread_ns_service_cycle(void * args)
 {
     dfs_thread_t *me = (dfs_thread_t *)args;
@@ -608,18 +627,21 @@ static void *thread_ns_service_cycle(void * args)
 
     me->state = THREAD_ST_OK;
 
+    //
     register_thread_initialized();
 
     while (me->running) 
 	{
+        // 连接上 namenode 获取 namespaceid
         if (dn_register(me) != DFS_OK) 
 		{
             sleep(1);
 
 			continue;
 		}
-		
+		// 检查 version namespace id ，创建子文件夹
 		setup_ns_storage(me);
+        // namenode 上报 receivedblock_report、 block_report
 		offer_service(me);
     }
 
@@ -637,6 +659,7 @@ static void stop_ns_service_thread()
     }
 }
 
+// 创建 scanner 线程
 static int create_data_blk_scanner(cycle_t *cycle)
 {
     pthread_t pid;

@@ -71,7 +71,7 @@ typedef struct cfs_s
 
 typedef struct io_event_s 
 {
-    volatile queue_t  posted_events;
+    volatile queue_t  posted_events; // 普通读写事件
     dfs_atomic_lock_t lock;
     volatile queue_t  posted_bad_events;
     dfs_atomic_lock_t bad_lock;

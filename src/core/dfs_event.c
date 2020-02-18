@@ -41,9 +41,9 @@ void event_process_posted(volatile queue_t *posted, log_t *log)
                 "%s: fd:%d conn:%p, timer key:%M write:%d, handle %p", __func__,
                 c->fd, c, ev->timer.key, ev->write, ev->handler);
 
-            ev->handler(ev);
+            ev->handler(ev); //listen_rev_handler in dn_conn_event.c
 
-        } 
+        }
 		else 
 		{
             dfs_log_debug(log, DFS_LOG_DEBUG, 0,

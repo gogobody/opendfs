@@ -12,6 +12,7 @@ static void cfs_fio_manager_indeed_free(uint64_t n,
 	fio_manager_t *fio_manager);
 static size_t my_align(size_t d, uint32_t a);
 
+//
 int cfs_fio_manager_init(cycle_t *cycle, fio_manager_t *fio_manager)
 {
     queue_t       *one = NULL;
@@ -91,6 +92,7 @@ file_io_t *cfs_fio_manager_alloc(fio_manager_t *fio_manager)
     return fio;
 }
 
+//
 static uint32_t cfs_fio_manager_refill(uint32_t n, fio_manager_t *fio_manager)
 {
     uint32_t    i = 0;

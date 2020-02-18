@@ -38,6 +38,7 @@ static int wait_to_work(int second);
 static int block_report(int sockfd);
 static int delete_blks(char *p, int len);
 
+// 连接上 namenode 获取 namespaceid
 int dn_register(dfs_thread_t *thread)
 {
     int sockfd = ns_srv_init(thread->ns_info.ip, thread->ns_info.port);
@@ -49,7 +50,7 @@ int dn_register(dfs_thread_t *thread)
 	task_t out_t;
 	bzero(&out_t, sizeof(task_t));
 	out_t.cmd = DN_REGISTER;
-	strcpy(out_t.key, dfs_cycle->listening_ip);
+	strcpy(out_t.key, dfs_cycle->listening_ip); // bind for cli ip
 
 	char sBuf[BUF_SZ] = "";
 	int sLen = task_encode2str(&out_t, sBuf, sizeof(sBuf));
@@ -130,6 +131,7 @@ int dn_register(dfs_thread_t *thread)
     return DFS_OK;
 }
 
+// socket 链接 namenode 返回 sockfd
 static int ns_srv_init(char* ip, int port)
 {
 	int sockfd = socket(AF_INET, SOCK_STREAM, 0);
@@ -162,10 +164,11 @@ static int ns_srv_init(char* ip, int port)
 	return sockfd;
 }
 
+// namenode 上报 receivedblock_report、 block_report
 int offer_service(dfs_thread_t *thread)
 {
     conf_server_t *sconf = (conf_server_t *)dfs_cycle->sconf;
-    int heartbeat_interval = sconf->heartbeat_interval;
+    int heartbeat_interval = sconf->heartbeat_interval; // 心跳间隔
 	int block_report_interval = sconf->block_report_interval;
 
     struct timeval now;
@@ -185,7 +188,7 @@ int offer_service(dfs_thread_t *thread)
 			}
 		}
 
-        if (g_recv_blk_report.num > 0)
+        if (g_recv_blk_report.num > 0) // 接收的？send receivedblock_report
 		{
             if (receivedblock_report(thread->ns_info.sockfd) != DFS_OK) 
 		    {
@@ -193,7 +196,7 @@ int offer_service(dfs_thread_t *thread)
 		    }
 		}
 
-		if (g_blk_report.num > 0) 
+		if (g_blk_report.num > 0)  // 上报的？
 		{
             if (block_report(thread->ns_info.sockfd) != DFS_OK) 
 		    {
@@ -207,7 +210,7 @@ int offer_service(dfs_thread_t *thread)
 		if (wtime > 0 && g_recv_blk_report.num == 0 && g_blk_report.num == 0) 
 		{
 		    g_last_heartbeat = now_time;
-			
+			// 阻塞并等待
 	        wait_to_work(wtime);
 		}
 
@@ -292,7 +295,7 @@ static int send_heartbeat(int sockfd)
 	    delete_blks((char *)in_t.data, in_t.data_len);
 	}
 
-	dfs_log_error(dfs_cycle->error_log, DFS_LOG_INFO, 0, 
+	dfs_log_error(dfs_cycle->error_log, DFS_LOG_INFO, 0,
 		"send_heartbeat ok, ret: %d", in_t.ret);
 
 	free(pNext);
@@ -301,6 +304,7 @@ static int send_heartbeat(int sockfd)
     return DFS_OK;
 }
 
+//
 static int receivedblock_report(int sockfd)
 {
     queue_t           *cur = NULL;
@@ -504,6 +508,7 @@ static int block_report(int sockfd)
     return DFS_OK;
 }
 
+// blk info插入 g_blk_report
 int notify_blk_report(block_info_t *blk)
 {
     pthread_mutex_lock(&g_blk_report.lock);

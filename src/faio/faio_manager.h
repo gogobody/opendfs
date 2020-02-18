@@ -88,11 +88,11 @@ struct faio_handler_manager_s
 
 struct faio_notifier_manager_s 
 {
-    int                 nfd;
+    int                 nfd; // eventfd 进程间通信
     faio_manager_t     *manager;
     faio_atomic_t       count;
     faio_condition_t    cond;    
-    faio_atomic_t       noticed;
+    faio_atomic_t       noticed; //
     int                 release;
 };
 
@@ -114,7 +114,7 @@ struct faio_worker_properties_s
 struct faio_worker_manager_s 
 {
     unsigned int                idle; //空闲时间
-    unsigned int                started;
+    unsigned int                started; // 已经开始的线程
     unsigned int                want_quit; 
     faio_queue_t                worker_queue;
     faio_worker_properties_t    worker_properties;

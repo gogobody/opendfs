@@ -26,7 +26,7 @@
 
 #define DFS_SENDFILE_LIMIT 2147479552L
 
-faio_manager_t *faio_mgr;
+faio_manager_t *faio_mgr; //cfs_faio_ioinit 中初始化
 
 typedef struct chain_s 
 {

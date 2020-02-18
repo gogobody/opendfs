@@ -201,13 +201,13 @@ int main(int argc, char **argv)
         goto failed;
     }
     // 临时屏蔽fork
-    if (sconf->daemon == DFS_TRUE && dn_daemon() == DFS_ERROR)
-	{
-        dfs_log_error(cycle->error_log, DFS_LOG_FATAL, 0,
-                "dfs_daemon failed");
-		
-        goto failed;
-    }
+//    if (sconf->daemon == DFS_TRUE && dn_daemon() == DFS_ERROR)
+//	{
+//        dfs_log_error(cycle->error_log, DFS_LOG_FATAL, 0,
+//                "dfs_daemon failed");
+//
+//        goto failed;
+//    }
 
     process_pid = getpid();
 

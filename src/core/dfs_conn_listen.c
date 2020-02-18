@@ -24,7 +24,7 @@ int conn_listening_open(array_t *listening, log_t *log)
         return DFS_ERROR;
     }
 
-    for (tries = 5; tries; tries--) 
+    for (tries = 5; tries; tries--) //bind和listen最多重试5次
 	{
         failed = 0;
         ls = (listening_t *)listening->elts; // element?
@@ -59,7 +59,10 @@ int conn_listening_open(array_t *listening, log_t *log)
 				
                 return DFS_ERROR;
             }
-
+            /*
+                默认情况下,server重启,调用socket,bind,然后listen,会失败.因为该端口正在被使用.如果设定SO_REUSEADDR,那么server重启才会成功.因此,
+                所有的TCP server都必须设定此选项,用以应对server重启的现象.
+                */
             if (setsockopt(s, SOL_SOCKET, SO_REUSEADDR,
                 (const void *) &reuseaddr, sizeof(int)) == DFS_ERROR) 
             {
@@ -257,7 +260,7 @@ int conn_listening_close(array_t *listening)
 
     return DFS_OK;
 }
-
+// listen for cli
 int conn_listening_add_event(event_base_t *base, array_t *listening)
 {
     conn_t      *c = NULL;
@@ -265,7 +268,7 @@ int conn_listening_add_event(event_base_t *base, array_t *listening)
     uint32_t     i = 0;
     listening_t *ls = NULL;
       
-    ls = (listening_t *)listening->elts;
+    ls = (listening_t *)listening->elts;// cli
 	
     for (i = 0; i < listening->nelts; i++) 
 	{
@@ -273,7 +276,7 @@ int conn_listening_add_event(event_base_t *base, array_t *listening)
 		
         if (!c) 
 		{
-            c = conn_get_from_mem(ls->fd);
+            c = conn_get_from_mem(ls->fd); // init conn
             if (!c) 
 			{
                 dfs_log_debug(ls[i].log, DFS_LOG_DEBUG, 0,
@@ -284,14 +287,14 @@ int conn_listening_add_event(event_base_t *base, array_t *listening)
             }
 			
             dfs_log_debug(ls[i].log, DFS_LOG_DEBUG, 0,
-                "add listening %V,fd %d", &ls[i].addr_text, ls[i].fd);
+                "add listening %V,fd %d ", &ls[i].addr_text, ls[i].fd);
             
             c->listening = &ls[i];
             c->log = ls[i].log;
             ls[i].connection = c;
             rev = c->read;
             rev->accepted = DFS_TRUE;
-            rev->handler = ls->handler;
+            rev->handler = ls->handler; //
         }
 		else 
 		{

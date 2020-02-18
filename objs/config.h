@@ -75,11 +75,11 @@
 
 
 #ifndef PREFIX
-#define PREFIX  "/home/ubuntu/opendfs"
+#define PREFIX  "/home/gogobody/opendfs"
 #endif
 
 
 #ifndef PID_FILE
-#define PID_FILE  "/home/ubuntu/opendfs/logs/namenode.pid"
+#define PID_FILE  "/home/gogobody/opendfs/logs/namenode.pid"
 #endif
 

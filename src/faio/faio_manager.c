@@ -33,7 +33,7 @@ int faio_manager_init(faio_manager_t *faio_mgr, faio_properties_t *faio_prop,
 	{
         goto release;
     }
-
+    // 开启两个 worker 线程
     if (faio_worker_manager_init(faio_mgr, faio_prop, error) == FAIO_ERROR) 
 	{
         goto release;
@@ -88,6 +88,7 @@ int faio_manager_release(faio_manager_t *faio_mgr, faio_errno_t *error)
     return FAIO_OK;
 }
 
+// 
 int faio_notifier_init(faio_notifier_manager_t *notifier_mgr, 
     faio_manager_t *faio_mgr, faio_errno_t *error)
 {
@@ -262,6 +263,7 @@ int faio_sendfile(faio_notifier_manager_t *notifier_mgr,
     return FAIO_OK;
 }
 
+//
 int faio_recv_notifier(faio_notifier_manager_t *notifier_mgr, 
 	faio_errno_t *error)
 {

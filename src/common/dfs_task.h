@@ -16,7 +16,7 @@
 
 typedef struct task_s
 {
-	cmd_t     cmd;
+	cmd_t     cmd; // 命令
 	int       ret;
 	uint32_t  seq;
 	void     *opq;

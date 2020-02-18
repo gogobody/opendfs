@@ -249,6 +249,8 @@ static void faio_worker_name_set(void)
     return;
 }
 
+// faio thread func
+// 处理 队列 faio_data_task_t 消息
 static void *faio_worker_fun(void *worker_arg)
 {
     faio_data_task_t               *req;
@@ -268,7 +270,7 @@ static void *faio_worker_fun(void *worker_arg)
     data_mgr = worker_mgr->data_mgr;
     hanle_mgr = worker_mgr->handler_mgr;
     
-
+    // 将状态改为unjoinable状态，确保资源的释放
     pthread_detach(pthread_self());
     faio_worker_name_set();
 

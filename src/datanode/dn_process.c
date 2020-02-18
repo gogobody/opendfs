@@ -66,6 +66,8 @@ int process_check_running(cycle_t *cycle)
     return DFS_TRUE;
 }
 
+// 该函数在主线程循环中需要创建工作进程的地方被调用
+// 用ngx_spawn_process函数创建工作进程，然后通知所有进程
 static pid_t process_spawn(cycle_t *cycle, spawn_proc_pt proc, 
 	                              void *data, char *name, int slot)
 {
@@ -75,7 +77,7 @@ static pid_t process_spawn(cycle_t *cycle, spawn_proc_pt proc,
     
     log = cycle->error_log;
 
-    if (slot == PROCESS_SLOT_AUTO) 
+    if (slot == PROCESS_SLOT_AUTO) //-1
 	{
         for (slot = 0; slot < process_last; slot++) 
 		{
@@ -198,7 +200,7 @@ static pid_t process_spawn(cycle_t *cycle, spawn_proc_pt proc,
 
             break;
     }
-
+    puts("main thread first out log");
     processes[slot].pid = pid;
     processes[slot].proc = proc;
     processes[slot].data = data;
@@ -519,7 +521,7 @@ void process_master_cycle(cycle_t *cycle, int argc, char **argv)
 	{
         dfs_log_debug(cycle->error_log, DFS_LOG_DEBUG, 0, "sigsuspend");
 
-        sigsuspend(&set);
+        sigsuspend(&set); // 继续等待新的信号
 
         time_update();
 

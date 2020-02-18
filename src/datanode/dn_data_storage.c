@@ -57,7 +57,7 @@ int dn_data_storage_master_init(cycle_t *cycle)
 
 		return DFS_ERROR;
 	}
-	
+	// 初始化 cfs 的各项函数
 	if (cfs_setup(cycle->pool, (cfs_t *)cycle->cfs, cycle->error_log) 
 		!= DFS_OK) 
 	{
@@ -109,18 +109,21 @@ int dn_data_storage_worker_release(cycle_t *cycle)
     return DFS_OK;
 }
 
+
+// worker thread
+//
 int dn_data_storage_thread_init(dfs_thread_t *thread)
 {
     if (cfs_fio_manager_init(dfs_cycle, &thread->fio_mgr) != DFS_OK) 
 	{
         return DFS_ERROR;
 	}
-
+    //
 	if (cfs_notifier_init(&thread->faio_notify) != DFS_OK) 
 	{
         return DFS_ERROR;
     }
-
+    // 初始化 io events 队列
     return cfs_ioevent_init(&thread->io_events);
 }
 
@@ -190,6 +193,7 @@ static int create_storage_dirs(cycle_t *cycle)
     return DFS_OK;
 }
 
+// namenode
 int setup_ns_storage(dfs_thread_t *thread)
 {
     char path[PATH_LEN] = "";
@@ -296,6 +300,7 @@ static int check_version(char *path)
     return DFS_OK;
 }
 
+//
 static int check_namespace(char *path, int64_t namespaceID)
 {
     char bbwDir[PATH_LEN] = "";
@@ -354,7 +359,7 @@ static int check_namespace(char *path, int64_t namespaceID)
 	    }
 
 	    close(fd);
-
+        // 创建了很多个subdir
 		create_storage_subdirs(curDir);
 	}
 	else 
@@ -597,9 +602,10 @@ static size_t req_hash(const void *data, size_t data_size,
     return u % hashtable_size;
 }
 
+// 去hash table 里面找到对应 id 的blk info
 block_info_t *block_object_get(long id)
 {
-    pthread_rwlock_rdlock(&g_dn_bcm->cache_rwlock);
+    pthread_rwlock_rdlock(&g_dn_bcm->cache_rwlock); //读锁定读写锁
 
 	block_info_t *blk = (block_info_t *)dfs_hashtable_lookup(g_dn_bcm->blk_htable, 
 		&id, sizeof(id));
@@ -609,10 +615,11 @@ block_info_t *block_object_get(long id)
     return blk;
 }
 
+// 更新 hashtable 和 g_blk_report
 int block_object_add(char *path, long ns_id, long blk_id)
 {
     block_info_t *blk = NULL;
-
+    // 去hash table 里面找到对应 id 的blk info
 	blk = block_object_get(blk_id);
 	if (blk) 
 	{
@@ -624,8 +631,9 @@ int block_object_add(char *path, long ns_id, long blk_id)
 	stat(path, &sb);
 	long blk_sz = sb.st_size;
 
-	pthread_rwlock_wrlock(&g_dn_bcm->cache_rwlock);
+	pthread_rwlock_wrlock(&g_dn_bcm->cache_rwlock); // 写锁定？
 
+	// ？
 	blk = (block_info_t *)mem_get0(g_dn_bcm->mem_mgmt.free_mblks);
 	if (!blk)
 	{
@@ -645,7 +653,8 @@ int block_object_add(char *path, long ns_id, long blk_id)
 	dfs_hashtable_join(g_dn_bcm->blk_htable, &blk->ln);
 
 	pthread_rwlock_unlock(&g_dn_bcm->cache_rwlock);
-	
+
+    // blk info插入 g_blk_report
     notify_blk_report(blk);
 	
     return DFS_OK;
@@ -814,6 +823,7 @@ static int recv_blk_report(dn_request_t *r)
     return DFS_OK;
 }
 
+// scanner线程
 void *blk_scanner_start(void *arg)
 {
 	conf_server_t *sconf = NULL;
@@ -829,7 +839,7 @@ void *blk_scanner_start(void *arg)
 
 	//last_blk_report = diff;
 
-	while (blk_scanner_running) 
+	while (blk_scanner_running)  // 默认 true
 	{
         //gettimeofday(&now, NULL);
 	    //diff = (now.tv_sec * 1000 + now.tv_usec / 1000) - last_blk_report;
@@ -993,6 +1003,7 @@ static int scan_subdir_subdir(char *dir, long namespace_id)
 			get_blk_id(ent->d_name, blk_id);
 
 			sprintf(path, "%s/%s", dir, ent->d_name);
+            // 更新 hashtable 和 g_blk_report
 			block_object_add(path, namespace_id, atol(blk_id));
 		}
 	}

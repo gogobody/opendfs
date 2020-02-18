@@ -173,7 +173,9 @@ void error_log_debug_core(log_t *log, uint32_t level, char *file,
     string_t *stime = NULL;
     string_t *slevel = NULL;
 
-    if (!log || !(level & log->log_level)
+//    printf(args);
+    // log all
+    if (!log || !(level || log->log_level)
         || (log->file->fd == DFS_INVALID_FILE)) 
     {
         return;
@@ -202,8 +204,10 @@ void error_log_debug_core(log_t *log, uint32_t level, char *file,
     va_start(args, fmt);
     p = string_xxvsnprintf(p, last - p, fmt, args);
     va_end(args);
-  
-    if (err) 
+//    printf("%d,%d,%d\n",!log,!(level || log->log_level),(log->file->fd == DFS_INVALID_FILE));
+
+
+    if (err)
 	{
         if (p > last - 50) 
 		{
@@ -228,7 +232,8 @@ void error_log_debug_core(log_t *log, uint32_t level, char *file,
     }
 
     *p++ = LF;
-	
+    printf("%s\n", errstr);
+
     if (log->file->fd > 0) 
 	{
         logsz = p - errstr;
@@ -253,7 +258,7 @@ static uchar_t * error_log_strerror(int err, uchar_t *errstr, size_t size)
     errstr[0] = '\0';
 	
     str = strerror_r(err, (char *) errstr, size);
-    if (str != (char *) errstr)
+    if (str != (char *) errstr && str!=NULL)
 	{
         string_strncpy(errstr, (uchar_t *) str, size);
     }

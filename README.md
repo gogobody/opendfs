@@ -2,8 +2,7 @@
 单独的数据节点
 
 3 ：main -> process_master_cycle -> process_start_workers -> process_spawn -> worker_processer 
-            -> dfs_module_worker_init -> dn_data_storage_worker_init |-> cfs_prepare_work 
-                                                                     |                   -> cfs_faio_init -> faio_manager_init  -> faio_data_manager_init 
+            -> dfs_module_worker_init -> dn_data_storage_worker_init |-> cfs_prepare_work -> cfs_faio_init -> faio_manager_init  -> faio_data_manager_init 
                                                                      |                                                          -> faio_worker_manager_init -> faio_worker_init_properties
                                                                      |                                                                                      -> faio_worker_start_thread //  开启了两个同样的线程
                                                                      |                                                          -> faio_handler_manager_init

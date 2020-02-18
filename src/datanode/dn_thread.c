@@ -88,10 +88,12 @@ void thread_clean(dfs_thread_t *thread)
 {
 }
 
+// 初始化 thread 的event
 int thread_event_init(dfs_thread_t *thread)
 {
-    io_event_t *ioevents = NULL;
-	
+    io_event_t *ioevents = NULL; // 读写事件
+
+    // 初始化 epoll句柄和 event list 空间分配
     if (epoll_init(&thread->event_base, dfs_cycle->error_log) == DFS_ERROR) 
 	{
         return DFS_ERROR;
@@ -99,6 +101,7 @@ int thread_event_init(dfs_thread_t *thread)
 
     event_timer_init(&thread->event_timer, time_curtime, dfs_cycle->error_log);
 
+    //niginx是通过将获取的事件先不调用其回调，而是把他们先放入俩个post队列，这俩个队列分别为
 	queue_init((queue_t *)&thread->posted_accept_events);
     queue_init((queue_t *)&thread->posted_events);
 
@@ -112,6 +115,7 @@ int thread_event_init(dfs_thread_t *thread)
     return DFS_OK;
 }
 
+// 线程 event 处理
 void thread_event_process(dfs_thread_t *thread)
 {
     uint32_t      flags = EVENT_UPDATE_TIME;
@@ -141,6 +145,7 @@ void thread_event_process(dfs_thread_t *thread)
         event_free_accept_lock(thread);
     }
 
+	// add epoll event
 	if (accept_lock_held == thread->thread_id
         && conn_listening_add_event(ev_base, listens) == DFS_OK) 
     {
@@ -159,7 +164,7 @@ void thread_event_process(dfs_thread_t *thread)
     }
     
     delta = dfs_current_msec;
-
+    //
     (void) event_process_events(ev_base, timer, flags);
 
     if ((THREAD_WORKER == thread->type) 

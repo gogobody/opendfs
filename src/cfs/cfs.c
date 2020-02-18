@@ -168,6 +168,7 @@ int cfs_prepare_work(cycle_t *cycle)
 	return cfs->sp->io_opt.ioinit(/*sconf->dio_thread_num*/20);
 }
 
+//
 int cfs_ioevent_init(io_event_t *io_event)
 {
     if (!io_event) 
@@ -181,6 +182,7 @@ int cfs_ioevent_init(io_event_t *io_event)
     return DFS_OK;
 }
 
+//
 void ioevents_process_posted(volatile queue_t *posted,
     dfs_atomic_lock_t *lock, fio_manager_t *fio_manager)
 {
@@ -217,6 +219,7 @@ void ioevents_process_posted(volatile queue_t *posted,
     }
 }
 
+//
 void cfs_ioevents_process_posted(io_event_t *io_event,
     fio_manager_t *fio_manager)
 {
@@ -226,6 +229,7 @@ void cfs_ioevents_process_posted(io_event_t *io_event,
 		&io_event->lock, fio_manager);
 }
 
+// 初始化 notifier
 int cfs_notifier_init(faio_notifier_manager_t *faio_notify)
 {
     faio_errno_t error;
@@ -242,6 +246,7 @@ int cfs_notifier_init(faio_notifier_manager_t *faio_notify)
     return DFS_OK;
 }
 
+//
 void cfs_recv_event(faio_notifier_manager_t *faio_notify)
 {
     faio_errno_t error;
