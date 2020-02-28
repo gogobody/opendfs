@@ -33,7 +33,7 @@ int faio_manager_init(faio_manager_t *faio_mgr, faio_properties_t *faio_prop,
 	{
         goto release;
     }
-    // 开启两个 worker 线程
+    // 开启两个 worker 线程 handle req task in data
     if (faio_worker_manager_init(faio_mgr, faio_prop, error) == FAIO_ERROR) 
 	{
         goto release;
@@ -41,6 +41,7 @@ int faio_manager_init(faio_manager_t *faio_mgr, faio_properties_t *faio_prop,
 
     handler_mgr = &faio_mgr->handler_manager;
 
+    // init handle func to null
     faio_handler_manager_init(handler_mgr);
 
     return FAIO_OK;
@@ -192,7 +193,7 @@ int faio_read(faio_notifier_manager_t *notifier_mgr,
 
     return FAIO_OK;
 }
-
+//cfs_faio_write_callback
 int faio_write(faio_notifier_manager_t *notifier_mgr, 
 	faio_callback_t faio_callback, faio_data_task_t *task, faio_errno_t *error)
 {
@@ -280,7 +281,8 @@ int faio_recv_notifier(faio_notifier_manager_t *notifier_mgr,
 		
         return FAIO_ERROR;
     }
-
+// 读取 eventfd
+// 设置 noticed FAIO_FALSE ??
     ret = faio_notifier_receive(notifier_mgr, error);
 
     return ret;

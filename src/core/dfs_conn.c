@@ -113,7 +113,7 @@ int conn_tcp_delay(int s)
         (const void *) &nodelay, sizeof(int));
 }
 
-// 根据 eventfd 初始化 connection
+// 根据 fd 初始化 connection
 conn_t * conn_get_from_mem(int s)
 {
     conn_t  *c   = NULL;
@@ -145,7 +145,7 @@ void conn_set_default(conn_t *c, int s)
     uint32_t  instance;
     uint32_t  last_instance;
 
-    c->fd = s; // eventfd
+    c->fd = s; // set conn fd
 
     rev = c->read; // read event
     wev = c->write; // write event

@@ -13,6 +13,7 @@ static inline unsigned char cmp_and_swap(volatile uint64_t *ptr,
 	uint64_t old, uint64_t nw);
 
 // 初始化 notifier
+// 创建 event fd 初始化 0
 int faio_notifier_manager_init(faio_notifier_manager_t *notifier,
     faio_manager_t *fm, faio_errno_t *err_no)
 {
@@ -26,7 +27,7 @@ int faio_notifier_manager_init(faio_notifier_manager_t *notifier,
     notifier->release = FAIO_FALSE;
     faio_notifier_count_reset(&notifier->count);
     faio_notifier_count_reset(&notifier->noticed);
-    // 创建 event fd
+    // 创建 event fd 初始化 0
     notifier->nfd = faio_notifier_create();
     if (notifier->nfd < 0) 
 	{
@@ -83,10 +84,12 @@ int faio_notifier_manager_release(faio_notifier_manager_t *notifier,
 }
 
 // eventfd 用于进程间通信
+//eventfd是Linux 2.6提供的一种系统调用，它可以用来实现事件通知
 static int faio_notifier_create(void)
 {
     int nfd = 0;
-    //创建eventfd时会返回一个文件描述符，进程可以通过对这个文件描述符进行read/write来读取/改变计数器的值，从而实现进程间通信。
+    //创建eventfd时会返回一个文件描述符，进程可以通过对这个文件描述符进行read/write来读取/改变计数器的值，
+    // 从而实现进程间通信。
     nfd = eventfd(0, 0);
 
     return nfd;
@@ -130,7 +133,7 @@ int faio_notifier_send(faio_notifier_manager_t *notifier,
 }
 
 // 读取 eventfd
-// 设置 noticed
+// 设置 noticed FAIO_FALSE ??
 int faio_notifier_receive(faio_notifier_manager_t *notifier,
 	faio_errno_t *err_no)
 {
@@ -151,6 +154,7 @@ int faio_notifier_receive(faio_notifier_manager_t *notifier,
         return FAIO_ERROR;
     }
 
+    // noticed -> FAIO_FALSE
     atomic_test_and_reset(&notifier->noticed);
     
     return FAIO_OK;
@@ -242,7 +246,13 @@ static void atomic_test_and_reset(faio_atomic_t *x)
 {
     uint64_t value;
     uint64_t set = FAIO_FALSE;
-
+//    do{
+//
+//        备份旧数据；
+//
+//        基于旧数据构造新数据；
+//
+//    }while(!CAS( 内存的最新值，备份的旧数据，新数据 ))
     do {
         value = x->value;
     } while (!CAS(&x->value, value, set));

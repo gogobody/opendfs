@@ -1,9 +1,11 @@
 #ifndef DFS_EVENT_H
 #define DFS_EVENT_H
 
+#include "dfs_epoll.h"
 #include "dfs_types.h"
 #include "dfs_queue.h"
 #include "dfs_rbtree.h"
+
 
 #define EVENT_HAVE_EPOLL       1 // use epoll
 #define EVENT_HAVE_CLEAR_EVENT 1
@@ -21,8 +23,8 @@ struct event_s
     uint32_t         instance:1;  /*检测当前事件是否是过期的，它仅仅是给驱动模块使用的，而事件消费模块可以不用关心 */
     /* used to detect the stale events in kqueue and epoll */
     uint32_t         last_instance:1;
-    uint32_t         active:1;
-    uint32_t         ready:1;   //在AIO模式下标示是否有请求事件处理
+    uint32_t         active:1; //一个fd第一次加入到epoll中的时候，active会被置1
+    uint32_t         ready:1;   //可读写时，ready就会被置1
     uint32_t         timedout:1;
     uint32_t         timer_set:1;
     uint32_t         timer_event:1;

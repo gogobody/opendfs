@@ -81,7 +81,7 @@ static pid_t process_spawn(cycle_t *cycle, spawn_proc_pt proc,
 	{
         for (slot = 0; slot < process_last; slot++) 
 		{
-            if (processes[slot].pid == DFS_INVALID_PID)  //先找到一个被回收的进程表象  
+            if (processes[slot].pid == DFS_INVALID_PID)  //先找到一个可用的slot
 			{
                 break;
             }
@@ -346,6 +346,11 @@ void process_signal_workers(int signo)
 
     ch.fd = DFS_INVALID_FILE;
 
+    /* 子进程创建的时候，父进程的东西都会被子进程继承，
+     * 所以后面创建的进程能够得到前面进程的channel信息，
+     * 直接可以和他们通信，那么前面创建的进程如何知道后面的进程信息呢？
+     * 很简单，既然前面创建的进程能够接受消息，那么我就发个信息告诉他后面的进程的channel,并把信息保存在channel[0]中，
+     * 这样就可以相互通信了。*/
     for (i = 0; i < process_last; i++) 
 	{
         if (processes[i].pid == DFS_INVALID_PID
@@ -356,6 +361,7 @@ void process_signal_workers(int signo)
 
         if (ch.command != CHANNEL_CMD_NONE) 
 		{
+            //向 每个进程 channel[0]发送信息
             if (channel_write(processes[i].channel[0], &ch,
                 sizeof(channel_t), dfs_cycle->error_log) == DFS_OK)
             {
@@ -467,7 +473,7 @@ void process_master_cycle(cycle_t *cycle, int argc, char **argv)
     }
 	
     main_thread->type = THREAD_MASTER;
-    thread_bind_key(main_thread);
+    thread_bind_key(main_thread); // 将master thread 作为线程共享
 	
     size = sizeof(MASTER_TITLE) - 1;
 
@@ -504,7 +510,10 @@ void process_master_cycle(cycle_t *cycle, int argc, char **argv)
 
 	// 本质上这是一个跨进程的互斥锁，以这个互斥锁来保证只有一个进程具备监听accept事件的能力
 	accept_lock_init();
-    // 开启监听端口 // listen_rev_handler 处理 listening 事件
+    // 开启监听端口 listening fd = sockfd
+    // listen_rev_handler 处理 listening 事件
+    // cli 的listening初始化，并加入listening数组
+
     if (conn_listening_init(cycle) != DFS_OK) 
 	{
         return;
@@ -515,8 +524,17 @@ void process_master_cycle(cycle_t *cycle, int argc, char **argv)
         return;
     }
 
+    // 由于前面已经对set进行了清空，因而这里重新监听这些信号，以对这些信号进行处理，这里需要注意的是，
+    // 如果没有收到任何信号，主进程就会被挂起在这个位置。
+    // 关于master进程处理信号的流程，这里需要说明的是，在nginx.c的main()方法中，会调用
+    // ngx_init_signals()方法将全局变量signals中定义的信号及其会调用方法设置到当前进程的信号集中。
+    // 而signals中定义的信号的回调方法都是ngx_signal_handler()方法，
+    // 该方法在接收到对应的信号之后，会设置对应的标志位，也即下面多个if判断中的参数，
+    // 通过这种方式来触发相应的逻辑的执行。
+
     sigemptyset(&set);
 
+    // master thread
     for ( ;; ) 
 	{
         dfs_log_debug(cycle->error_log, DFS_LOG_DEBUG, 0, "sigsuspend");
@@ -807,6 +825,7 @@ int process_run_check()
         && (!(process_doing & PROCESS_DOING_TERMINATE));
 }
 
+// 对于父进程而言，他知道所有进程的channel[0]， 直接可以向子进程发送命令
 process_t * get_process(int slot)
 {
     return &processes[slot];

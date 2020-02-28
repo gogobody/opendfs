@@ -1,5 +1,6 @@
 # opendfs
 单独的数据节点
+事件的 active 时epoll add 时设置的，ready是epoll wait到事件准备处理时设置的
 
 3 ：main -> process_master_cycle -> process_start_workers -> process_spawn -> worker_processer 
             -> dfs_module_worker_init -> dn_data_storage_worker_init |-> cfs_prepare_work -> cfs_faio_init -> faio_manager_init  -> faio_data_manager_init 

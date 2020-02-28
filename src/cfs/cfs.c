@@ -79,7 +79,7 @@ int cfs_write(cfs_t *cfs, file_io_t *fio, log_t *log)
         return DFS_ERROR;
     }
 
-    rc = cfs->sp->io_opt.write(fio, log);
+    rc = cfs->sp->io_opt.write(fio, log);//cfs_faio_write
     if (rc == DFS_ERROR) 
 	{
         return DFS_ERROR;
@@ -182,7 +182,7 @@ int cfs_ioevent_init(io_event_t *io_event)
     return DFS_OK;
 }
 
-//
+// fio 回调
 void ioevents_process_posted(volatile queue_t *posted,
     dfs_atomic_lock_t *lock, fio_manager_t *fio_manager)
 {
@@ -213,13 +213,14 @@ void ioevents_process_posted(volatile queue_t *posted,
             return;
         }
 
+        // block_write_complete
         fio->h(fio->data, fio);
-        //cfs_fio_manager_free(fio, fio_manager);
+        // cfs_fio_manager_free(fio, fio_manager);
         i++;
     }
 }
 
-//
+// fio 回调
 void cfs_ioevents_process_posted(io_event_t *io_event,
     fio_manager_t *fio_manager)
 {

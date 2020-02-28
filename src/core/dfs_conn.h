@@ -40,9 +40,9 @@ enum
 // 这种连接是指 客户端发起的，服务器被动接受的连接
 struct conn_s 
 {
-    int                    fd;
+    int                    fd; //
     void                  *next;
-    void                  *conn_data; // thread
+    void                  *conn_data; // thread dn_request_t
     event_t               *read;  // 连接对应的读事件
     event_t               *write;
     sysio_recv_pt          recv;   //直接接收网络字符流的方法

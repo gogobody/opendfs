@@ -10,6 +10,7 @@ dfs_atomic_lock_t comm_conn_lock;
 static void put_comm_conn(conn_t *c);
 static conn_t* get_comm_conn(uint32_t n, int *num);
 
+// 初始化线程连接池
 int conn_pool_init(conn_pool_t *pool, uint32_t connection_n)
 {
     conn_t   *conn = NULL;

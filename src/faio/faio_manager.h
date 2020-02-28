@@ -57,7 +57,7 @@ struct faio_data_task_s
 {
     faio_data_task_t        *next;
     FAIO_IO_TYPE             io_type;
-    faio_callback_t          io_callback;
+    faio_callback_t          io_callback; // 回调
     faio_notifier_manager_t *notifier;
     faio_task_errno_t        err;
     int                      cancel_flag;
@@ -88,7 +88,7 @@ struct faio_handler_manager_s
 
 struct faio_notifier_manager_s 
 {
-    int                 nfd; // eventfd 进程间通信
+    int                 nfd; // eventfd 进程间通信// 创建 event fd 初始化 0
     faio_manager_t     *manager;
     faio_atomic_t       count;
     faio_condition_t    cond;    
@@ -113,7 +113,7 @@ struct faio_worker_properties_s
 
 struct faio_worker_manager_s 
 {
-    unsigned int                idle; //空闲时间
+    unsigned int                idle; //空闲的
     unsigned int                started; // 已经开始的线程
     unsigned int                want_quit; 
     faio_queue_t                worker_queue;

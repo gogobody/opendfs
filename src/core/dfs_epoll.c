@@ -60,7 +60,9 @@ void epoll_done(event_base_t *ep_base)
     ep_base->event_flags = 0;
 }
 
-//
+/* epoll event
+ * data.ptr is conn
+ * */
 int epoll_add_event(event_base_t *ep_base, event_t *ev, 
 	                      int event, uint32_t flags)
 {
@@ -113,9 +115,14 @@ int epoll_add_event(event_base_t *ep_base, event_t *ev,
     ee.events = events | (uint32_t) flags;
     ee.data.ptr = (void *) ((uintptr_t) c | ev->instance); // connection
 
+    // 其实从nginx的设计上来讲，它想表达的语义很明确：
+    //当一个fd第一次加入到epoll中的时候，active会被置1，意味着这个fd是有效的。直到我们把这个fd从epoll中移除，active才会清零。
+    // ready是另一层处理，这个fd虽然在epoll中，但是有时这个fd可以读写，有时则是未就绪的。
+    // 那么当可读写时，ready就会被置1。这样我们就可以来读写数据了。当我们从fd读写到EAGAIN时，ready就会被清零，意味着当前这个fd未就绪。
+    // 但是它不影响active，因为这个fd仍然在epoll中，ready==0只是要等待后续的读写触发。
     ev->active = DFS_TRUE;
 
-    if (epoll_ctl(ep_base->ep, op, c->fd, &ee) == -1) 
+    if (epoll_ctl(ep_base->ep, op, c->fd, &ee) == -1)
 	{
         dfs_log_error(ep_base->log, DFS_LOG_ALERT, errno,
             "epoll_add_event: fd:%d op:%d, failed", c->fd, op);
@@ -276,7 +283,7 @@ int epoll_process_events(event_base_t *ep_base, rb_msec_t timer,
 
     errno = 0;
     events_num = epoll_wait(ep_base->ep, ep_base->event_list,
-        (int) ep_base->nevents, timer);
+        (int) ep_base->nevents, timer); // nevents 是每次能处理的事件数 timer -1相当于阻塞，0相当于非阻塞。
 
     if (flags & EVENT_UPDATE_TIME && ep_base->time_update) 
 	{
@@ -347,8 +354,10 @@ int epoll_process_events(event_base_t *ep_base, rb_msec_t timer,
             events |= EPOLLIN|EPOLLOUT;
         }
 
+        // write in
         if ((events & EPOLLIN) && rev->active) 
 		{
+            // 设置 event ready
             rev->ready = DFS_TRUE;
 			
             if (!rev->handler) 
@@ -359,7 +368,7 @@ int epoll_process_events(event_base_t *ep_base, rb_msec_t timer,
                 continue;
             }
 			
-            if (flags & EVENT_POST_EVENTS) 
+            if (flags & EVENT_POST_EVENTS) // accept events
 			{
                 queue = rev->accepted ? &ep_base->posted_accept_events:
                                         &ep_base->posted_events;
@@ -367,10 +376,11 @@ int epoll_process_events(event_base_t *ep_base, rb_msec_t timer,
 				
                 dfs_log_debug(ep_base->log, DFS_LOG_DEBUG, 0,
                     "epoll_process_events: post read event, fd:%d", c->fd);
-				
+				// EVENT_POST_EVENTS
+				// 添加事件到 queue
                 queue_insert_tail((queue_t*)queue, &rev->post_queue);
             } 
-			else 
+			else  // handle events
 			{
                 dfs_log_debug(ep_base->log, DFS_LOG_DEBUG, 0,
                     "epoll_process_events: read event fd:%d", c->fd);
@@ -384,6 +394,7 @@ int epoll_process_events(event_base_t *ep_base, rb_msec_t timer,
 		
         if ((events & EPOLLOUT) && wev->active) 
 		{
+            // 设置 event ready
             wev->ready = DFS_TRUE;
 			
             if (!wev->handler) 
@@ -400,6 +411,7 @@ int epoll_process_events(event_base_t *ep_base, rb_msec_t timer,
                     "epoll_process_events: post write event, fd:%d", c->fd);
 				
                 rev->last_instance = instance;
+                // add post event queue
                 queue_insert_tail((queue_t*)&ep_base->posted_events, &wev->post_queue);
             } 
 			else 

@@ -71,7 +71,7 @@ static int thread_setup(dfs_thread_t *thread, int type)
     }
 
 	thread->event_base.time_update = time_update;
-        
+    // 初始化线程连接池
 	if (conn_pool_init(&thread->conn_pool, sconf->connection_n) != DFS_OK) 
 	{
 		return DFS_ERROR;
@@ -170,6 +170,9 @@ void worker_processer(cycle_t *cycle, void *data)
     }
 
     // start worker in dn_data_storage.c //dn_data_storage_worker_init
+    // faio thread process queue task
+    // init cache management
+    // init report queue
     if (dfs_module_woker_init(cycle) != DFS_OK) 
 	{
 		dfs_log_error(cycle->error_log, DFS_LOG_ALERT, errno, 
@@ -179,7 +182,7 @@ void worker_processer(cycle_t *cycle, void *data)
     }
 
     sigemptyset(&set);//信号集置空
-    if (sigprocmask(SIG_SETMASK, &set, NULL) == -1)
+    if (sigprocmask(SIG_SETMASK, &set, NULL) == -1) // 就是不阻塞信号？
 	{
         dfs_log_error(cycle->error_log, DFS_LOG_ALERT, errno, 
 			"sigprocmask() failed");
@@ -198,6 +201,7 @@ void worker_processer(cycle_t *cycle, void *data)
     // name node server ?
     // 获取 namespaceid 和 监控 report 上报
     // 发送心跳
+    //
 	if (create_ns_service_thread(cycle) != DFS_OK)
 	{
         dfs_log_error(cycle->error_log, DFS_LOG_ALERT, errno,
@@ -214,6 +218,7 @@ void worker_processer(cycle_t *cycle, void *data)
         exit(PROCESS_FATAL_EXIT);
 	}
     //创建worker线程
+    //处理posted events？
     if (create_worker_thread(cycle) != DFS_OK)
 	{
         dfs_log_error(cycle->error_log, DFS_LOG_ALERT, errno,
@@ -221,10 +226,16 @@ void worker_processer(cycle_t *cycle, void *data)
 
         exit(PROCESS_FATAL_EXIT);
     }
-
+//    sleep(1000);
     process = get_process(process_get_curslot());
 
+    // channel 用于父子进程通信
     /* 根据全局变量ngx_channel开启一个通道,只用于处理读事件(ngx_channel_handler) */
+    /*channel[0] 是用来发送信息的，channel[1]是用来接收信息的。那么对自己而言，它需要向其他进程发送信息，
+     * 需要保留其它进程的channel[0], 关闭channel[1]; 对自己而言，则需要关闭channel[0]。
+     * 最后把ngx_channel放到epoll中，从第一部分中的介绍我们可以知道，这个ngx_channel实际就是自己的 channel[1]。
+     * 这样有信息进来的时候就可以通知到了。*/
+    // 子进程读取通道消息
     if (channel_add_event(process->channel[1],
         EVENT_READ_EVENT, channel_handler, NULL) != DFS_OK) 
     {
@@ -242,6 +253,8 @@ void worker_processer(cycle_t *cycle, void *data)
             break;
         }
         // 先注释掉主线程的 thread 事件
+        sleep(10000);
+
         thread_event_process(main_thread);
     }
 	
@@ -250,6 +263,7 @@ void worker_processer(cycle_t *cycle, void *data)
 }
 
 // 开启worker 线程
+
 int create_worker_thread(cycle_t *cycle)
 {
     conf_server_t *sconf = NULL;
@@ -269,6 +283,7 @@ int create_worker_thread(cycle_t *cycle)
 
     for (i = 0; i < woker_num; i++) 
 	{
+        // 初始化epoll connection pool
         if (thread_setup(&woker_threads[i], THREAD_WORKER) == DFS_ERROR) 
 		{
             dfs_log_error(cycle->error_log, DFS_LOG_FATAL, 0, 
@@ -322,6 +337,10 @@ static void * thread_worker_cycle(void *arg)
 	time_init();
 
 	// dn_data_storage_thread_init
+    // worker thread
+    // init faio \ fio
+    // init notifier eventfd
+    // 初始化 io events 队列 posted events, posted bad events
     if (dfs_module_workethread_init(me) != DFS_OK) 
 	{
         goto exit;
@@ -334,6 +353,9 @@ static void * thread_worker_cycle(void *arg)
     if (faio_mgr) 
 	{
         // 添加 读事件
+        // 监听的 fd me->faio_notify.nfd
+        // eventfd 进程间通信
+        // handle 处理 fio回调
         if (channel_add_event(me->faio_notify.nfd, EVENT_READ_EVENT, 
             dio_event_handler, (void *)me) == DFS_ERROR)
         {
@@ -365,11 +387,15 @@ exit:
     return NULL;
 }
 
+// epoll event handler in worker cycle
+// notifier handler
+// fio 回调
 static void dio_event_handler(event_t * ev)
 {
     dfs_thread_t *thread = (dfs_thread_t *)((conn_t *)(ev->data))->conn_data;
 
-    // read eventfd
+    // 读取 eventfd
+    // 设置 noticed FAIO_FALSE ??
     cfs_recv_event(&thread->faio_notify);
 	cfs_ioevents_process_posted(&thread->io_events, &thread->fio_mgr);
 }
@@ -392,7 +418,7 @@ static int channel_add_event(int fd, int event,
 	{
         return DFS_ERROR;
     }
-    // 获取的是主线程的？
+    // worker thread  event base
     base = thread_get_event_base();
 
     c->pool = NULL;
@@ -405,6 +431,7 @@ static int channel_add_event(int fd, int event,
     ev->handler = handler;
 
     // epoll add event
+    // ev->data(conn)->fd
     if (event_add(base, ev, event, 0) == DFS_ERROR) 
 	{
         return DFS_ERROR;
@@ -413,6 +440,7 @@ static int channel_add_event(int fd, int event,
     return DFS_OK;
 }
 
+//ngx_channel_handler
 static void channel_handler(event_t *ev)
 {
     int            n = 0;
@@ -484,7 +512,8 @@ static void channel_handler(event_t *ev)
             dfs_log_debug(dfs_cycle->error_log, DFS_LOG_DEBUG, 0,
                 "get channel s:%i pid:%P fd:%d",
                 ch.slot, ch.pid, ch.fd);
-			
+			/* 收到其他进程的pid 和fd 信息 ，进程通信
+			 * 就是在对应的位置上复制pid和fd,下次向往哪个进程发信息的时候，直接发到 ngx_process[目标进程].channel[0]*/
             process = get_process(ch.slot);
             process->pid = ch.pid;
             process->channel[0] = ch.fd;

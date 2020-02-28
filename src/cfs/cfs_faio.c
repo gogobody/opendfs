@@ -44,7 +44,8 @@ static void cfs_faio_parse(swap_opt_t *sp, fs_meta_t *meta);
 static void cfs_faio_done(void);
 
 // init faio property and manager
-// register faio read and write 
+// register faio read and write
+// faio thread process queue task
 static int cfs_faio_ioinit(int thread_num)
 {
     faio_errno_t      error;
@@ -57,13 +58,18 @@ static int cfs_faio_ioinit(int thread_num)
     property.max_thread = thread_num;
     property.pre_start = 2;
 
+    // data worker handle manager
     faio_mgr = (faio_manager_t *)malloc(sizeof(faio_manager_t));
+
     // fast io manager init
-    if (faio_manager_init(faio_mgr, &property, 0, &error) != FAIO_OK) 
+    // faio thread process queue task
+    // faio worker thread handle data req task
+    if (faio_manager_init(faio_mgr, &property, 0, &error) != FAIO_OK)
 	{
         return DFS_ERROR;
     }
 
+    // register handle func to process data req task in faio worker thread
     if (faio_register_handler(faio_mgr, cfs_faio_io_read, FAIO_IO_TYPE_READ, 
         &error) != FAIO_OK) 
     {
@@ -198,7 +204,8 @@ void cfs_faio_read_callback(faio_data_task_t *task)
 
         dfs_atomic_lock_off(&((io_event_t *)file_io->io_event)->bad_lock, 
             &error);
-    } 
+    }
+    // 插入posted_event queue
 	else if (file_io->result == AIO_OK)
 	{
         dfs_atomic_lock_on(&((io_event_t *)file_io->io_event)->lock, &error);
@@ -211,6 +218,7 @@ void cfs_faio_read_callback(faio_data_task_t *task)
     }
 }
 
+// fio init in dn_data_storage_thread_init
 int cfs_faio_io_read(faio_data_task_t *task)
 {
     file_io_t *file_task = NULL;

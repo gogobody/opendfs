@@ -98,7 +98,7 @@ quit:
     return ret;
 }
 
-static int faio_worker_init_properties(faio_worker_manager_t *worker_mgr, 
+static int faio_worker_init_properties(faio_worker_manager_t *worker_mgr,
     faio_worker_properties_t *properties, faio_errno_t *err)
 {
     int  ret = FAIO_OK;
@@ -251,6 +251,7 @@ static void faio_worker_name_set(void)
 
 // faio thread func
 // 处理 队列 faio_data_task_t 消息
+// worker_arg is worker thread
 static void *faio_worker_fun(void *worker_arg)
 {
     faio_data_task_t               *req;
@@ -272,7 +273,7 @@ static void *faio_worker_fun(void *worker_arg)
     
     // 将状态改为unjoinable状态，确保资源的释放
     pthread_detach(pthread_self());
-    faio_worker_name_set();
+    faio_worker_name_set();// 设置线程名
 
     ts.tv_nsec = 0UL;
     ts.tv_sec = 0;
@@ -281,6 +282,7 @@ static void *faio_worker_fun(void *worker_arg)
 	{
         for (;;) 
 		{
+            // pop faio_data_task_t
             req = faio_data_pop_req(data_mgr);
             if (!req) 
 			{
@@ -300,11 +302,11 @@ static void *faio_worker_fun(void *worker_arg)
             }
                 
             notifier = req->notifier;
-            req->io_callback(req);
-            faio_notifier_send(notifier, &err);
-            faio_notifier_count_dec(notifier, &err);
+            req->io_callback(req);// 回调
+            faio_notifier_send(notifier, &err); //向对应的 notifier 发送一个1
+            faio_notifier_count_dec(notifier, &err); // notifier 的count - 1
         }
-
+        // 结束后的处理
         faio_lock(worker_mgr->work_lock);
 		
         if (worker_mgr->want_quit == FAIO_WORKER_TO_QUIT) 
@@ -369,6 +371,7 @@ static int faio_worker_start_thread(faio_worker_manager_t *worker_mgr,
     }
     
     wrk->worker_mgr = worker_mgr;
+    // worker fun handle req task
     ret = faio_worker_create_thread(&wrk->tid, 
 		faio_worker_fun, (void *)wrk, err);
     if (ret == FAIO_ERROR) 

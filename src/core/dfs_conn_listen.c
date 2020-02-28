@@ -260,6 +260,8 @@ int conn_listening_close(array_t *listening)
 
     return DFS_OK;
 }
+
+// thread_event_process
 // listen for cli
 int conn_listening_add_event(event_base_t *base, array_t *listening)
 {
@@ -276,6 +278,7 @@ int conn_listening_add_event(event_base_t *base, array_t *listening)
 		
         if (!c) 
 		{
+            //为当前监听套接字的文件描述符分配一个connection，函数返回值c是当前监听套接字关联的connection
             c = conn_get_from_mem(ls->fd); // init conn
             if (!c) 
 			{
@@ -289,12 +292,12 @@ int conn_listening_add_event(event_base_t *base, array_t *listening)
             dfs_log_debug(ls[i].log, DFS_LOG_DEBUG, 0,
                 "add listening %V,fd %d ", &ls[i].addr_text, ls[i].fd);
             
-            c->listening = &ls[i];
+            c->listening = &ls[i]; //当前连接的监听端口
             c->log = ls[i].log;
-            ls[i].connection = c;
-            rev = c->read;
-            rev->accepted = DFS_TRUE;
-            rev->handler = ls->handler; //
+            ls[i].connection = c; //当前监听端口的connection
+            rev = c->read;  //rev指向当前connection的读事件
+            rev->accepted = DFS_TRUE; //表示当前的读事件是监听端口的accept事件，可以用于epoll区分是一般的读事件还是监听对口的accept事件
+            rev->handler = ls->handler; // listen_rev_handler
         }
 		else 
 		{

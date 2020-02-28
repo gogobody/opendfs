@@ -32,7 +32,7 @@ int conn_listening_init(cycle_t *cycle)
     server_bind_t *bind_for_cli = NULL;
     
     sconf = (conf_server_t *)dfs_cycle->sconf;
-	bind_for_cli = (server_bind_t *)sconf->bind_for_cli.elts; //server_bind_t addr prot
+	bind_for_cli = (server_bind_t *)sconf->bind_for_cli.elts; //cli server_bind_t addr prot
 
 	cycle->listening_for_cli.elts = pool_calloc(cycle->pool, 
 		sizeof(listening_t) * sconf->bind_for_cli.nelts);
@@ -51,6 +51,8 @@ int conn_listening_init(cycle_t *cycle)
 
 	for (i = 0; i < sconf->bind_for_cli.nelts; i++) 
 	{
+	    // add listening to array
+	    // init listening
         ls = conn_listening_add(&cycle->listening_for_cli, cycle->pool,
             cycle->error_log, inet_addr((char *)bind_for_cli[i].addr.data), 
             bind_for_cli[i].port, listen_rev_handler, 
@@ -66,6 +68,7 @@ int conn_listening_init(cycle_t *cycle)
     }
 
 	// open listening
+	// listening fd = sockfd
 	if (conn_listening_open(&cycle->listening_for_cli, cycle->error_log) 
 		!= DFS_OK) 
     {
@@ -76,6 +79,7 @@ int conn_listening_init(cycle_t *cycle)
 }
 
 // 处理函数
+// accept handler
 static void listen_rev_handler(event_t *ev)
 {
     int           s = DFS_INVALID_FILE;
@@ -89,7 +93,8 @@ static void listen_rev_handler(event_t *ev)
     listening_t  *ls = NULL;
     int           i = 0;
     conn_pool_t  *conn_pool = NULL;
-    
+
+    // 第一次处理为1？监听过后事件失效
     ev->ready = 0;
     lc = (conn_t *)ev->data;
     ls = lc->listening;
@@ -102,6 +107,7 @@ static void listen_rev_handler(event_t *ev)
         ev->available == CONF_SERVER_UNLIMITED_ACCEPT_N || i < ev->available;
         i++) 
     {
+        /*accept一个新的连接, accept 的时候 lc->fd = ls->fd*/
         s = accept(lc->fd, (struct sockaddr *) sa, &socklen);
 
         if (s == DFS_INVALID_FILE) 
@@ -127,7 +133,7 @@ static void listen_rev_handler(event_t *ev)
 			
             return;
         }
-      
+        /*从connections数组中获取一个connecttion slot来维护新的连接*/
         nc = conn_pool_get_connection(conn_pool);
         if (!nc) 
 		{
@@ -138,7 +144,7 @@ static void listen_rev_handler(event_t *ev)
 			
             return;
         }
-		
+		// set conn fd = s
         conn_set_default(nc, s);
        
         if (!nc->pool)
@@ -174,6 +180,7 @@ static void listen_rev_handler(event_t *ev)
         }
 		
         log = dfs_cycle->error_log;
+        /*初始化新连接*/
         nc->recv = dfs_recv;
         nc->send = dfs_send;
         nc->recv_chain = dfs_recv_chain;
@@ -218,6 +225,7 @@ static void listen_rev_handler(event_t *ev)
             &ls->addr_text);
 		
         nc->accept_time = *time_timeofday();
+        //
         dn_conn_init(nc);
     }
 		

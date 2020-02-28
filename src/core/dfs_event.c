@@ -19,7 +19,7 @@ void event_process_posted(volatile queue_t *posted, log_t *log)
             (size_t)eq->prev, (size_t)eq->next, i);
 		
         queue_remove(eq);
-		
+		//
         ev = queue_data(eq, event_t, post_queue);
         if (!ev) 
 		{
@@ -56,6 +56,7 @@ void event_process_posted(volatile queue_t *posted, log_t *log)
 
 int event_handle_read(event_base_t *base, event_t *rev, uint32_t flags)
 {
+    // 第一次 rev->active ready =0
     if (!rev->active && !rev->ready) 
 	{
         if (event_add(base, rev, EVENT_READ_EVENT,

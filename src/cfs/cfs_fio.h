@@ -60,10 +60,10 @@ typedef struct file_io_s
 	uint32_t	             need; // 需要读取数据的字节数
     int	                     fd;  
     buffer_t                *b;    // buffer
-    void                    *data;
+    void                    *data; // 指向request
     file_io_handler_pt       h;
     int64_t                  ret;
-	int	                     event:2;
+	int	                     event:2; // eg:AIO_READ_EV
 	int	                     index:2;
 	int	                     result:2;
 	int                      able:2;
@@ -80,12 +80,12 @@ typedef struct file_io_s
 
 typedef struct fio_manager_s 
 {
-    queue_t         freeq;
+    queue_t         freeq; // free fio queue
     uint32_t        idle;
     uint32_t        batch;
     uint64_t        free;
     uint64_t        busy;
-    uint64_t        nelts;
+    uint64_t        nelts; // fio num
     uint64_t        max;
     uint32_t        threads;
     uint32_t        size;

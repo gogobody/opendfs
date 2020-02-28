@@ -1,6 +1,7 @@
 #include "faio_manager.h"
 #include "faio_error.h"
 
+//
 int faio_data_manager_init(faio_manager_t *faio_mgr, 
     unsigned int max_task, faio_errno_t *error)
 {   
@@ -123,8 +124,8 @@ int faio_data_push_task(faio_data_manager_t *data_mgr,
     task->state = FAIO_STATE_WAIT;
     task->cancel_flag = FAIO_FALSE;
     task->next = NULL;
-    task->io_type = io_type;
-    task->io_callback = io_callback;
+    task->io_type = io_type;// FAIO_IO_TYPE_WRITE
+    task->io_callback = io_callback;//cfs_faio_write_callback
     task->notifier = notifier;
     task->err.err = FAIO_ERR_TASK_NO_ERR; 
     task->err.sys =FAIO_ERR_TASK_NO_ERR;

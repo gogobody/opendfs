@@ -175,7 +175,7 @@ int main(int argc, char **argv)
 
     // init module index
 	dfs_module_setup();
-    // dn_data_storage_master_init // 初始化 cfs
+    // dn_data_storage_master_init // 初始化 cfs io func
 	if ((ret = dfs_module_master_init(cycle)) != DFS_OK)  // init master 函数
 	{
 		fprintf(stderr, "master init fail\n");

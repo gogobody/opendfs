@@ -46,6 +46,7 @@ static int scan_subdir(char *dir, long namespace_id);
 static int scan_subdir_subdir(char *dir, long namespace_id);
 static void get_blk_id(char *src, char *id);
 
+// 主进程
 //数据节点master初始化，pool and cfs
 int dn_data_storage_master_init(cycle_t *cycle)
 {
@@ -67,6 +68,7 @@ int dn_data_storage_master_init(cycle_t *cycle)
     return DFS_OK;
 }
 
+// 子进程
 // from dn_worker_process 的worker_processer
 // 入口函数
 int dn_data_storage_worker_init(cycle_t *cycle)
@@ -82,7 +84,7 @@ int dn_data_storage_worker_init(cycle_t *cycle)
 	{
 	    return DFS_ERROR;
 	}
-
+    // faio thread process queue task
 	if (cfs_prepare_work(cycle) != DFS_OK)  // cfs_faio_ioinit(int thread_num)
 	{
         return DFS_ERROR;
@@ -111,19 +113,24 @@ int dn_data_storage_worker_release(cycle_t *cycle)
 
 
 // worker thread
-//
+// init faio \ fio
+// init notifier eventfd
+// 初始化 io events 队列 posted events, posted bad events
 int dn_data_storage_thread_init(dfs_thread_t *thread)
 {
+    // init fio_manager
+    // 初始化 n 个fio ，并且添加到 fio manager 的free queue
     if (cfs_fio_manager_init(dfs_cycle, &thread->fio_mgr) != DFS_OK) 
 	{
         return DFS_ERROR;
 	}
-    //
+    // 初始化 notifier
+    // 创建 event fd 初始化 0
 	if (cfs_notifier_init(&thread->faio_notify) != DFS_OK) 
 	{
         return DFS_ERROR;
     }
-    // 初始化 io events 队列
+    // 初始化 io events 队列 posted events, posted bad events
     return cfs_ioevent_init(&thread->io_events);
 }
 
