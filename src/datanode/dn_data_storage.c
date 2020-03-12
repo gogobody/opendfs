@@ -96,6 +96,7 @@ int dn_data_storage_worker_init(cycle_t *cycle)
         return DFS_ERROR;
     }
 
+    // init blk report queue
 	blk_report_queue_init();
 	
     return DFS_OK;
@@ -525,6 +526,7 @@ static int blk_mem_mgmt_create(blk_cache_mem_t *mem_mgmt,
         goto err_allocator;
     }
 
+    // 创建index 个blk info t的块
     mem_mgmt->free_mblks = blk_mblks_create(mem_mgmt, index_num);
     if (!mem_mgmt->free_mblks) 
 	{
@@ -553,9 +555,12 @@ static struct mem_mblks *blk_mblks_create(blk_cache_mem_t *mem_mgmt,
     mblk_param.mem_free = allocator_free;
     mblk_param.priv = mem_mgmt->allocator;
 
-    return mem_mblks_new(block_info_t, count, &mblk_param);
+    // mem_mblks_new = > mem_mblks_new_fn
+    // 初始化新的 mem mblks
+    return mem_mblks_new_fn(sizeof(block_info_t), count, &mblk_param);
 }
 
+// 调用参数 allocator 的 alloc 分配mem size 大小的内存
 static void *allocator_malloc(void *priv, size_t mem_size)
 {
     if (!priv) 
@@ -601,6 +606,7 @@ static int uint64_cmp(const void *s1, const void *s2, size_t sz)
     return *(uint64_t *)s1 == *(uint64_t *)s2 ? DFS_FALSE : DFS_TRUE; 
 }
 
+// 取余
 static size_t req_hash(const void *data, size_t data_size, 
 	size_t hashtable_size)
 {
@@ -623,6 +629,7 @@ block_info_t *block_object_get(long id)
 }
 
 // 更新 hashtable 和 g_blk_report
+// 数据节点每次初始化就需要重建一次hash table
 int block_object_add(char *path, long ns_id, long blk_id)
 {
     block_info_t *blk = NULL;
@@ -640,7 +647,7 @@ int block_object_add(char *path, long ns_id, long blk_id)
 
 	pthread_rwlock_wrlock(&g_dn_bcm->cache_rwlock); // 写锁定？
 
-	// ？
+	// 从之前初始化的 gbcm缓存中分配一个blk
 	blk = (block_info_t *)mem_get0(g_dn_bcm->mem_mgmt.free_mblks);
 	if (!blk)
 	{
@@ -662,6 +669,7 @@ int block_object_add(char *path, long ns_id, long blk_id)
 	pthread_rwlock_unlock(&g_dn_bcm->cache_rwlock);
 
     // blk info插入 g_blk_report
+    // 不在hashtable里的向nn上报
     notify_blk_report(blk);
 	
     return DFS_OK;
@@ -758,6 +766,7 @@ int write_block_done(dn_request_t *r)
 		curDir, r->header.namespace_id, suddir_id, suddir_id2, 
 		r->header.block_id);
 
+	// 调用rename快速移动文件，但是rename不能跨分区跨磁盘
 	if (rename((char *)r->path, blkDir) != DFS_OK) 
 	{
         dfs_log_error(dfs_cycle->error_log, DFS_LOG_ERROR, errno, 
@@ -824,7 +833,8 @@ static int recv_blk_report(dn_request_t *r)
 	dfs_hashtable_join(g_dn_bcm->blk_htable, &blk->ln);
 
 	pthread_rwlock_unlock(&g_dn_bcm->cache_rwlock);
-	
+
+	// 提示name node 收到 blk
     notify_nn_receivedblock(blk);
     
     return DFS_OK;
@@ -921,7 +931,7 @@ static void get_namespace_id(char *src, char *id)
 	}
 }
 
-static int scan_namespace_dir(char *dir, long namespace_id)
+    static int scan_namespace_dir(char *dir, long namespace_id)
 {
     char           root[PATH_LEN] = "";
 	DIR           *p_dir = NULL;
@@ -1004,7 +1014,8 @@ static int scan_subdir_subdir(char *dir, long namespace_id)
 
 	while (NULL != (ent = readdir(p_dir))) 
 	{
-        if (8 == ent->d_type && 0 == strncmp(ent->d_name, "blk_", 4)) 
+	    // 如果是常规文件，
+        if (DT_REG == ent->d_type && 0 == strncmp(ent->d_name, "blk_", 4))
 		{
 	        char blk_id[16] = "";
 			get_blk_id(ent->d_name, blk_id);

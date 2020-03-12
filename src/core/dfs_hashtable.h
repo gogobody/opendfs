@@ -28,8 +28,8 @@ typedef struct dfs_hashtable_link_s dfs_hashtable_link_t;
 
 struct dfs_hashtable_link_s 
 {
-    void                 *key;
-    size_t                len;
+    void                 *key; // blk id
+    size_t                len; //sizeof(blk->id);
     dfs_hashtable_link_t *next;
 };
 

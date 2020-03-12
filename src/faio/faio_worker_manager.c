@@ -303,10 +303,10 @@ static void *faio_worker_fun(void *worker_arg)
                 
             notifier = req->notifier;
             req->io_callback(req);// 回调
-            faio_notifier_send(notifier, &err); //向对应的 notifier 发送一个1
+            faio_notifier_send(notifier, &err); //向对应的 notifier 发送一个1 //faio_notify.nfd // dio_event_handler启动
             faio_notifier_count_dec(notifier, &err); // notifier 的count - 1
         }
-        // 结束后的处理
+        //
         faio_lock(worker_mgr->work_lock);
 		
         if (worker_mgr->want_quit == FAIO_WORKER_TO_QUIT) 
@@ -326,11 +326,13 @@ static void *faio_worker_fun(void *worker_arg)
             goto quit;
         }
 
+        // 空闲的 faio thread +1
         ++worker_mgr->idle;
         if (faio_data_manager_get_size(data_mgr) == 0) 
 		{
             if (worker_mgr->idle <= worker_ctl->max_idle) 
 			{
+                // 有空闲的就等待 in faio_worker_maybe_start_thread
                 faio_cond_wait(&worker_mgr->worker_wait, 
                     &worker_mgr->work_lock);
             } 
@@ -401,6 +403,7 @@ int faio_worker_maybe_start_thread(faio_worker_manager_t *worker_mgr,
 {   
     int ret = FAIO_OK;
 
+    // 没有task的时候直接返回
     if (faio_data_manager_get_size(worker_mgr->data_mgr) == 0) 
 	{
         return ret;
@@ -415,11 +418,11 @@ int faio_worker_maybe_start_thread(faio_worker_manager_t *worker_mgr,
         return ret;
     }
 	
-    if (worker_mgr->idle) 
+    if (worker_mgr->idle) // 有空闲的就唤醒线程
 	{
         faio_cond_signal(&worker_mgr->worker_wait, worker_mgr->started);
     }
-	
+	// 开始的faio worker 超过了最大限制，直接返回
     if (worker_mgr->started >= worker_mgr->worker_properties.max_thread) 
 	{
         faio_unlock(worker_mgr->work_lock);
@@ -435,6 +438,7 @@ int faio_worker_maybe_start_thread(faio_worker_manager_t *worker_mgr,
 	
     faio_unlock(worker_mgr->work_lock);
 
+	// 没有超过最大限制并且线程数不够的情况下就新开一个线程
     ret = faio_worker_start_thread(worker_mgr, err);
 
     return ret;

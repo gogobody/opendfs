@@ -124,7 +124,7 @@ int faio_data_push_task(faio_data_manager_t *data_mgr,
     task->state = FAIO_STATE_WAIT;
     task->cancel_flag = FAIO_FALSE;
     task->next = NULL;
-    task->io_type = io_type;// FAIO_IO_TYPE_WRITE
+    task->io_type = io_type;// FAIO_IO_TYPE_WRITE // FAIO_IO_TYPPE_SENDFILE
     task->io_callback = io_callback;//cfs_faio_write_callback
     task->notifier = notifier;
     task->err.err = FAIO_ERR_TASK_NO_ERR; 

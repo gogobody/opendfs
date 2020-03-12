@@ -86,7 +86,7 @@ int conf_context_parse(conf_context_t *ctx)
 
     file->size = s.st_size;
 
-	// 把文件读取到用户空间
+	// mmap 把文件读取到 file -> buf
     if (conf_file_read(file, ctx->log) != DFS_OK) 
 	{
         conf_file_close(file, ctx->log);
@@ -120,6 +120,7 @@ int conf_context_parse(conf_context_t *ctx)
 
     conf_file_close(file, ctx->log);
 
+    // make default
     if (conf_make_objects_default(ctx) != DFS_OK) 
 	{
         dfs_log_error(ctx->log, DFS_LOG_ERROR, 0, 
@@ -193,7 +194,7 @@ static int conf_parse_buf(conf_context_t *ctx, uchar_t *buf, size_t size)
 
     q = option;
 
-    p = buf;
+    p = buf; // position
     end = buf + size;
 
     for ( ; p < end; ) 
@@ -310,7 +311,7 @@ static int conf_parse_buf(conf_context_t *ctx, uchar_t *buf, size_t size)
 				
                 break;
 				
-            case '#':
+            case '#': // 说明是注释
                 if (first_quote && !last_quote) 
 				{
                     goto normal_char;
@@ -572,7 +573,8 @@ static int conf_parse_type(conf_context_t *ctx, conf_args_t *conf_args)
         {
             continue;
         }
-        
+
+        //
         if (conf_parse_object(ctx, &word[1], &objects[i]) != DFS_OK) 
 		{
             dfs_log_error(log, DFS_LOG_ERROR, 0, 
@@ -635,7 +637,8 @@ static int conf_parse_option(conf_context_t *ctx, conf_args_t *conf_args)
             {
                 continue;
             }
-            
+
+            // 在这里调用了 init 函数
             if (conf_parse_object(ctx, &word[1], &objects[i]) != DFS_OK) 
 			{
                 return DFS_ERROR;
@@ -741,6 +744,7 @@ static int conf_parse_object(conf_context_t *ctx, string_t *var,
     }
 	
     // malloc memory from conf
+    // conf init
     v->conf = obj->init(ctx->pool);
     if (v->conf == NULL) 
 	{

@@ -151,7 +151,8 @@ int main(int argc, char **argv)
     }
 
     umask(0022);//默认创建新文件权限为755
-    
+
+    // cycle init 主要初始化配置文件结构体，解析配置文件，初始化error log相关结构体
     if ((ret = cycle_init(cycle)) != DFS_OK) 
 	{
         fprintf(stderr, "cycle_init fail\n");

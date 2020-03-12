@@ -25,8 +25,8 @@ int faio_notifier_manager_init(faio_notifier_manager_t *notifier,
     }
 
     notifier->release = FAIO_FALSE;
-    faio_notifier_count_reset(&notifier->count);
-    faio_notifier_count_reset(&notifier->noticed);
+    faio_notifier_count_reset(&notifier->count);// set count -> 0
+    faio_notifier_count_reset(&notifier->noticed); // set noticed -> 0
     // 创建 event fd 初始化 0
     notifier->nfd = faio_notifier_create();
     if (notifier->nfd < 0) 
@@ -118,7 +118,7 @@ int faio_notifier_send(faio_notifier_manager_t *notifier,
         return FAIO_ERROR;
     }
 
-    if (atomic_test_and_set(&notifier->noticed)) 
+    if (atomic_test_and_set(&notifier->noticed)) // set noticed -> 1
 	{
         if (write(notifier->nfd, &count, sizeof(count)) < 0) 
 		{
@@ -154,7 +154,7 @@ int faio_notifier_receive(faio_notifier_manager_t *notifier,
         return FAIO_ERROR;
     }
 
-    // noticed -> FAIO_FALSE
+    // reset noticed -> 0
     atomic_test_and_reset(&notifier->noticed);
     
     return FAIO_OK;

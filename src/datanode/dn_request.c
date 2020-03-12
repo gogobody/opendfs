@@ -273,7 +273,7 @@ static void dn_request_close(dn_request_t *r, uint32_t err)
 // 解析 header
 static void dn_request_parse_header(dn_request_t *r)
 {
-    int op_type = r->header.op_type;
+        int op_type = r->header.op_type;
 	
     r->read_event_handler = dn_request_block_reading;
 	
@@ -937,6 +937,7 @@ static void recv_block_handler(dn_request_t *r)
     }
 }
 
+// param data is request , task is fio it self
 static int block_write_complete(void *data, void *task)
 {
     dn_request_t *r = NULL;
@@ -967,8 +968,8 @@ static int block_write_complete(void *data, void *task)
         return DFS_ERROR;
 	}
 
-	r->done += rs;
-	if (r->done < r->header.len) 
+	r->done += rs;// 完成了多少
+	if (r->done < r->header.len)  // 数据没有发送或者接受完就继续发送或者接收
 	{
 	    buffer_reset(r->input);
 		//dn_request_recv_block(r);
@@ -977,6 +978,7 @@ static int block_write_complete(void *data, void *task)
         return DFS_OK;
 	}
 
+	// close fd
 	cfs_close((cfs_t *)dfs_cycle->cfs, r->store_fd);
 	r->store_fd = -1;
 

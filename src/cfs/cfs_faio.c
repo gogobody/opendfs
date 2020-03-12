@@ -59,6 +59,7 @@ static int cfs_faio_ioinit(int thread_num)
     property.pre_start = 2;
 
     // data worker handle manager
+    // global
     faio_mgr = (faio_manager_t *)malloc(sizeof(faio_manager_t));
 
     // fast io manager init
@@ -210,6 +211,7 @@ void cfs_faio_read_callback(faio_data_task_t *task)
 	{
         dfs_atomic_lock_on(&((io_event_t *)file_io->io_event)->lock, &error);
 
+        // 将fio 插入 io_event队列，也是thread->ioevents
         queue_insert_tail((queue_t *)&(
             ((io_event_t *)file_io->io_event)->posted_events),
             &file_io->q);

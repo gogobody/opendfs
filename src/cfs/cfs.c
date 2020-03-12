@@ -60,7 +60,7 @@ int cfs_sendfile_chain(cfs_t *cfs, file_io_t *fio, log_t *log)
         return DFS_ERROR;
     }
 
-    rc = cfs->sp->io_opt.sendfilechain(fio, log);
+    rc = cfs->sp->io_opt.sendfilechain(fio, log); //cfs_faio_sendfile
     if (rc == DFS_ERROR) 
 	{
         return DFS_ERROR;
@@ -111,7 +111,7 @@ int cfs_read(cfs_t *cfs, file_io_t *fio, log_t *log)
 
 void cfs_close(cfs_t *cfs, int fd)
 {
-    cfs->sp->io_opt.close(fd);
+    cfs->sp->io_opt.close(fd); // close fd
 }
 
 int cfs_open(cfs_t *cfs, uchar_t *path, int flags, log_t *log)
@@ -176,14 +176,14 @@ int cfs_ioevent_init(io_event_t *io_event)
         return DFS_ERROR;
     }
 
-    queue_init((queue_t*)&io_event->posted_events);
+    queue_init((queue_t*)&io_event->posted_events); // thread->
     queue_init((queue_t*)&io_event->posted_bad_events);
 
     return DFS_OK;
 }
 
 // fio 回调
-void ioevents_process_posted(volatile queue_t *posted,
+void    ioevents_process_posted(volatile queue_t *posted,
     dfs_atomic_lock_t *lock, fio_manager_t *fio_manager)
 {
     int               i = 0;

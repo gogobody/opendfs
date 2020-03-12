@@ -188,8 +188,8 @@ int faio_read(faio_notifier_manager_t *notifier_mgr,
         return FAIO_ERROR;
     }
 
-    faio_notifier_count_inc(notifier_mgr, error);
-    faio_worker_maybe_start_thread(worker_mgr, error);
+    faio_notifier_count_inc(notifier_mgr, error); // notifier ->count +1
+    faio_worker_maybe_start_thread(worker_mgr, error); //
 
     return FAIO_OK;
 }
@@ -258,7 +258,7 @@ int faio_sendfile(faio_notifier_manager_t *notifier_mgr,
         return FAIO_ERROR;
     }
 
-    faio_notifier_count_inc(notifier_mgr, error);
+    faio_notifier_count_inc(notifier_mgr, error); //count +1
     faio_worker_maybe_start_thread(worker_mgr, error);
 
     return FAIO_OK;

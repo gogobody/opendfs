@@ -157,7 +157,7 @@ void * pool_alloc(pool_t *pool, size_t size)
 }
 
 
-
+// 内存对其并初始化
 void * pool_calloc(pool_t *pool, size_t size)
 {
     void *p = NULL;

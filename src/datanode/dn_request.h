@@ -60,7 +60,7 @@ typedef struct dn_request_s
 	data_transfer_header_t  header; // 头信息
 	int                     store_fd; // 接收时用于存储文件的fd
 	uchar_t                *path;
-	long                    done;
+	long                    done;// 数据完成的长度
 	file_io_t              *fio;
 } dn_request_t;
 

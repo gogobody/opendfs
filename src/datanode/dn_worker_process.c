@@ -389,7 +389,7 @@ exit:
 
 // epoll event handler in worker cycle
 // notifier handler
-// fio 回调
+// eventfd
 static void dio_event_handler(event_t * ev)
 {
     dfs_thread_t *thread = (dfs_thread_t *)((conn_t *)(ev->data))->conn_data;

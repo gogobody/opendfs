@@ -38,7 +38,8 @@ static int wait_to_work(int second);
 static int block_report(int sockfd);
 static int delete_blks(char *p, int len);
 
-// 连接上 namenode 获取 namespaceid
+// 连接上 namenode 注册datanode
+// 获取 namespaceid
 int dn_register(dfs_thread_t *thread)
 {
     int sockfd = ns_srv_init(thread->ns_info.ip, thread->ns_info.port);
@@ -169,12 +170,12 @@ int offer_service(dfs_thread_t *thread)
 {
     conf_server_t *sconf = (conf_server_t *)dfs_cycle->sconf;
     int heartbeat_interval = sconf->heartbeat_interval; // 心跳间隔
-	int block_report_interval = sconf->block_report_interval;
+	int block_report_interval = sconf->block_report_interval; // default is 3
 
     struct timeval now;
 	gettimeofday(&now, NULL);
 	unsigned long now_time = now.tv_sec + now.tv_usec / (1000 * 1000);
-	unsigned long diff = 0;
+	unsigned long diff = 0; // 当前时间 - 上一次heartbeat的时间
 		
     while (thread->running) 
 	{
@@ -182,12 +183,14 @@ int offer_service(dfs_thread_t *thread)
 		{
 		    g_last_heartbeat = now_time;
 			
-		    if (send_heartbeat(thread->ns_info.sockfd) != DFS_OK) 
+		    if (send_heartbeat(thread->ns_info.sockfd) != DFS_OK)
 			{
 			    goto out;
 			}
 		}
 
+		// 提示name node 收到 blk
+		// 从 cli 接收完成之后上报
         if (g_recv_blk_report.num > 0) // 接收的？send receivedblock_report
 		{
             if (receivedblock_report(thread->ns_info.sockfd) != DFS_OK) 
@@ -196,6 +199,7 @@ int offer_service(dfs_thread_t *thread)
 		    }
 		}
 
+        // 从scanner 那里扫描到，不在hashtable里的上报
 		if (g_blk_report.num > 0)  // 上报的？
 		{
             if (block_report(thread->ns_info.sockfd) != DFS_OK) 
@@ -204,9 +208,9 @@ int offer_service(dfs_thread_t *thread)
 		    }
 		}
 		
-        int ptime = heartbeat_interval - diff;
-		int wtime = ptime > 0 ? ptime : heartbeat_interval;
-		
+        int ptime = heartbeat_interval - (int)diff;
+		int wtime = ptime > 0 ? ptime : heartbeat_interval; // wait time
+		// wait wtime
 		if (wtime > 0 && g_recv_blk_report.num == 0 && g_blk_report.num == 0) 
 		{
 		    g_last_heartbeat = now_time;
@@ -215,7 +219,7 @@ int offer_service(dfs_thread_t *thread)
 		}
 
 		gettimeofday(&now, NULL);
-		now_time = (now.tv_sec + now.tv_usec / (1000 * 1000));
+		now_time = (now.tv_sec + now.tv_usec / (1000 * 1000)); // seconds
 	    diff = now_time - g_last_heartbeat;
 	}
 
@@ -232,7 +236,7 @@ static int send_heartbeat(int sockfd)
     task_t out_t;
 	bzero(&out_t, sizeof(task_t));
 	out_t.cmd = DN_HEARTBEAT;
-	strcpy(out_t.key, dfs_cycle->listening_ip);
+	strcpy(out_t.key, dfs_cycle->listening_ip); // 上报自己的ip
 
 	char sBuf[BUF_SZ] = "";
 	int sLen = task_encode2str(&out_t, sBuf, sizeof(sBuf));
@@ -397,6 +401,7 @@ static int wait_to_work(int second)
     return DFS_OK;
 }
 
+// 初始化 blk report queue
 int blk_report_queue_init()
 {
     queue_init(&g_recv_blk_report.que);
@@ -427,6 +432,7 @@ int blk_report_queue_release()
     return DFS_OK;
 }
 
+// 提示name node 收到 blk
 int notify_nn_receivedblock(block_info_t *blk)
 {
     pthread_mutex_lock(&g_recv_blk_report.lock);

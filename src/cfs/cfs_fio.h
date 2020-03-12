@@ -71,8 +71,8 @@ typedef struct file_io_s
     int                      error;
     queue_t                  q;
     queue_t                  used;
-    void                    *io_event;
-    faio_notifier_manager_t *faio_noty;
+    void                    *io_event; // thread->io_events
+    faio_notifier_manager_t *faio_noty; // thread ->
     faio_data_task_t         faio_task;
     int                      faio_ret;
     void                    *sf_chain_task;
@@ -90,7 +90,7 @@ typedef struct fio_manager_s
     uint32_t        threads;
     uint32_t        size;
     pthread_mutex_t lock;
-    queue_t         task_used;
+    queue_t         task_used; // 分配给 task 已经使用的fio
     uint64_t        refill_level;
 } fio_manager_t;
 

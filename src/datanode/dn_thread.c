@@ -158,7 +158,8 @@ void thread_event_process(dfs_thread_t *thread)
     {
         event_free_accept_lock(thread);
     }
-    
+
+	//
     timer = event_find_timer(&thread->event_timer);
 
     if ((timer > 10) || (timer == EVENT_TIMER_INFINITE)) 

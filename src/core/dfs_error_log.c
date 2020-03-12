@@ -47,7 +47,8 @@ log_t * error_log_init_with_stderr(pool_t *pool)
     return log;
 }
 
-int error_log_init(log_t  *slog, log_time_ptr tm_handler, 
+int
+error_log_init(log_t  *slog, log_time_ptr tm_handler,
 	                  log_level_ptr lv_handler)
 {
     if (*(slog->file->name.data) == '|') 
