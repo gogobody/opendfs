@@ -122,7 +122,6 @@ void pool_destroy(pool_t *pool)
 }
 
 //考虑内存对齐的内存池内存申请
-
 void * pool_alloc(pool_t *pool, size_t size)
 {
     pool_t  *p = NULL;

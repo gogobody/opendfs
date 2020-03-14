@@ -305,7 +305,7 @@ int conn_listening_add_event(event_base_t *base, array_t *listening)
         }
 		
         // setup listenting event
-        if (event_add(base, rev, EVENT_READ_EVENT, 0) == DFS_ERROR) 
+        if (epoll_add_event(base, rev, EVENT_READ_EVENT, 0) == DFS_ERROR)
 		{
             return DFS_ERROR;
         }

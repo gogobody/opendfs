@@ -36,7 +36,7 @@ struct mem_mblks * mem_mblks_new_fn(size_t sizeof_type, int64_t count,
     mblks->real_sizeof_type = sizeof_type;
     mblks->param = *param;
     mblks->free_blks = (struct mem_data*)((void *)mblks 
-		+ sizeof(struct mem_mblks)); // 这里为什么加这个？
+		+ sizeof(struct mem_mblks));
     
     for (ptr = mblks->free_blks, idx = 0; idx < count; idx++) 
 	{
@@ -81,6 +81,7 @@ void * mem_get(struct mem_mblks *mblks)
     return (void *)pdata->data;
 }
 
+// mem set to zero
 void * mem_get0(struct mem_mblks *mblks)
 {
 	void *ptr = NULL;

@@ -307,6 +307,8 @@ chain_t * sysio_writev_chain(conn_t *c, chain_t *in, size_t limit)
 		}
         //把in链中的buf拷贝到vec->iovs[n++]中，注意只会拷贝内存中的数据到iovec中，不会拷贝文件中的
         //返回为ngx_output_chain_to_iovec中组包的in链中所有数据长度和
+
+        // need recheck
         pack_count = sysio_pack_chain_to_iovs(iovs,
             DFS_IOVS_MAX, in, &packall_size, limit);
         if (pack_count == 0) 
@@ -509,7 +511,7 @@ chain_t * sysio_sendfile_chain(conn_t *c, chain_t *in,
     return in;
 }
 
-//把in链中的buf拷贝到vec->iovs[n++]中，注意只会拷贝内存中的数据到iovec中，不会拷贝文件中的
+// 把in链中的buf拷贝到vec->iovs[n++]中，注意只会拷贝内存中的数据到iovec中，不会拷贝文件中的
 // 似乎有点问题？
 // https://github.com/y123456yz/reading-code-of-nginx-1.9.2/blob/d4211403a022a275dd8ed68530353a5df7a12a5c/nginx-1.9.2/src/os/unix/ngx_writev_chain.c
 // ngx_output_chain_to_iovec
@@ -558,7 +560,7 @@ static int sysio_pack_chain_to_iovs(sysio_vec *iovs, int iovs_count,
         }
 		
         *last_size += bsize;
-        last_pos = in->buf->pos;
+        last_pos = in->buf->pos + bsize; // add bsize
         in = in->next;
     }
 

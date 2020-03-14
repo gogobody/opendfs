@@ -432,7 +432,7 @@ static int channel_add_event(int fd, int event,
 
     // epoll add event
     // ev->data(conn)->fd
-    if (event_add(base, ev, event, 0) == DFS_ERROR) 
+    if (epoll_add_event(base, ev, event, 0) == DFS_ERROR)
 	{
         return DFS_ERROR;
     }
@@ -483,7 +483,7 @@ static void channel_handler(event_t *ev)
 		
         if (ev_base->event_flags & EVENT_USE_EVENTPORT_EVENT) 
 		{
-            if (event_add(ev_base, ev, EVENT_READ_EVENT, 0) == DFS_ERROR) 
+            if (epoll_add_event(ev_base, ev, EVENT_READ_EVENT, 0) == DFS_ERROR)
 			{
                 return;
             }

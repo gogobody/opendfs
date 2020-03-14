@@ -181,7 +181,7 @@ static void listen_rev_handler(event_t *ev)
 		
         log = dfs_cycle->error_log;
         /*初始化新连接*/
-        nc->recv = dfs_recv;
+        nc->recv = dfs_recv; // in dfs_sys_io.c
         nc->send = dfs_send;
         nc->recv_chain = dfs_recv_chain;
         nc->send_chain = dfs_send_chain;

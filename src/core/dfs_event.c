@@ -59,7 +59,7 @@ int event_handle_read(event_base_t *base, event_t *rev, uint32_t flags)
     // 第一次 rev->active ready =0
     if (!rev->active && !rev->ready) 
 	{
-        if (event_add(base, rev, EVENT_READ_EVENT,
+        if (epoll_add_event(base, rev, EVENT_READ_EVENT,
             EVENT_CLEAR_EVENT) == DFS_ERROR)
         {
             return DFS_ERROR;
@@ -80,7 +80,7 @@ int event_handle_write(event_base_t *base, event_t *wev, size_t lowat)
 {
     if (!wev->active && !wev->ready) 
 	{
-        if (event_add(base, wev, EVENT_WRITE_EVENT,
+        if (epoll_add_event(base, wev, EVENT_WRITE_EVENT,
             EVENT_CLEAR_EVENT) == DFS_ERROR) 
         {
             return DFS_ERROR;

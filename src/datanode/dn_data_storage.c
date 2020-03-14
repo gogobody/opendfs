@@ -519,6 +519,7 @@ static int blk_mem_mgmt_create(blk_cache_mem_t *mem_mgmt,
     param.mem_addr = mem_mgmt->mem;
     param.mem_size = mem_size;
     // allocator
+    // allocator.init => create pool
     mem_mgmt->allocator = dfs_mem_allocator_new_init(
 		DFS_MEM_ALLOCATOR_TYPE_COMMPOOL, &param);
     if (!mem_mgmt->allocator) 

@@ -15,3 +15,9 @@
                                                                      |                                                  -> blk_mblks_create -> mem_mblks_new_fn
                                                                      |                                                  -> dfs_hashtable_create -> dfs_hashtable_init
                                                                      |-> blk_report_queue_init
+                                                                     
+                                                                     
+ 
+
+changes:
+last_pos = in->buf->pos + bsize; // add bsize
